@@ -1,15 +1,19 @@
 import type { Farm, Animal } from "@trazagro/shared";
 
 export const colors = {
-  primary: "#2D6A4F",
-  primaryLight: "#40916C",
-  accent: "#C77B30",
-  bg: "#F7F5F0",
+  primary: "#2E7D32",
+  primaryDark: "#1B5E20",
+  primaryLight: "#E8F5E9",
+  accent: "#6D4C41",
+  success: "#43A047",
+  warning: "#F9A825",
+  danger: "#D32F2F",
+  info: "#1976D2",
+  bg: "#F7F5EF",
   card: "#FFFFFF",
-  text: "#1B1B1B",
+  text: "#1F2A1F",
   textMuted: "#6B7280",
   border: "#E5E1D8",
-  danger: "#B91C1C",
 };
 
 export const demoFarms: Farm[] = [

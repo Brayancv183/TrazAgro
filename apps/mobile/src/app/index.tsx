@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   },
   farmName: { fontSize: 18, fontWeight: "700", color: colors.text },
   badge: {
-    backgroundColor: "#E6F0EA",
+    backgroundColor: "#E8F5E9",
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,

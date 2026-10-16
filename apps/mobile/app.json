@@ -14,7 +14,7 @@
     "android": {
       "package": "com.trazagro.app",
       "adaptiveIcon": {
-        "backgroundColor": "#2D6A4F",
+        "backgroundColor": "#1B5E20",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -23,6 +23,10 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "splash": {
+      "backgroundColor": "#1B5E20",
+      "resizeMode": "contain"
     },
     "plugins": [
       "expo-router"

@@ -86,12 +86,12 @@ const styles = StyleSheet.create({
   meta: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   breed: { fontSize: 12, color: colors.accent, fontWeight: "600" },
   linkBadge: {
-    backgroundColor: "#F3EDE3",
+    backgroundColor: "#F7F5EF",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   linkBadgeText: { fontSize: 11, fontWeight: "700", color: colors.accent },
-  linkBadgeGps: { backgroundColor: "#E6F0EA" },
+  linkBadgeGps: { backgroundColor: "#E8F5E9" },
   linkBadgeTextGps: { color: colors.primary },
 });
