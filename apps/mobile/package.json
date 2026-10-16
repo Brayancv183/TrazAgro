@@ -4,6 +4,7 @@
   "main": "expo-router/entry",
   "private": true,
   "dependencies": {
+    "@expo/metro-runtime": "~58.0.14",
     "@trazagro/shared": "workspace:*",
     "expo": "~58.0.11",
     "expo-constants": "~58.0.12",
@@ -11,9 +12,11 @@
     "expo-router": "~58.0.20",
     "expo-status-bar": "~58.0.3",
     "react": "19.3.0",
+    "react-dom": "19.3.0",
     "react-native": "0.88.0",
     "react-native-safe-area-context": "~5.10.1",
-    "react-native-screens": "~4.30.0"
+    "react-native-screens": "~4.30.0",
+    "react-native-web": "^0.21.4"
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
