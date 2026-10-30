@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "scheme": "trazagro",
     "ios": {
       "supportsTablet": true,
@@ -24,12 +24,20 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "splash": {
-      "backgroundColor": "#1B5E20",
-      "resizeMode": "contain"
-    },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-sqlite",
+      "expo-font",
+      "expo-secure-store",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1B5E20",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180
+        }
+      ]
     ]
   }
 }

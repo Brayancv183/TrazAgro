@@ -23,7 +23,7 @@
 | **Offline** | **expo-sqlite** local + sync propia con backend |
 | **UI** | Componentes propios (NativeWind opcional); verde agro + tierra |
 | **Backend** | Node.js + TypeScript, API REST, **Prisma + PostgreSQL (Neon)** |
-| **Auth** | OTP por teléfono + email |
+| **Auth** | OTP por teléfono + email | 
 | **Monorepo** | **pnpm + Turborepo**: `apps/mobile`, `apps/backend`, `apps/admin` (posterior), `packages/shared` |
 | **Infra** | Railway (API), Neon (BD), dominio `.com`, GitHub |
 | **Push** | Expo Notifications (nativa) |
@@ -32,15 +32,25 @@
 
 ## 3. Roles
 
-1. **Ganadero/productor** — dueño de la(s) finca(s)
-2. **Técnico de campo** — usuario con fincas asignadas (agrega datos en campo)
-3. **Super-admin** (Brayan) — suscripciones, afiliados, métricas globales
+Roles dentro de cada finca (permisos ajustables por persona):
 
-## 4. Módulos MVP (los 21 decididos)
+1. **Dueño** — todo, incluidos pagos y quién entra a la finca
+2. **Administrador o mayordomo** — todo menos pagos y usuarios
+3. **Técnico de campo** — salud, pesajes y reportes de las fincas asignadas
+4. **Vaquero** — registra eventos y pesajes; no ve costos
+5. **Solo ver** — consulta fichas y alertas sin cambiar nada
 
-Dashboard de finca · Animales (fichas) · Salud e historial clínico · Reproducción y crías · Pesajes y crecimiento · Lotes y ubicación · Alertas in-app + push · Reportes exportables · Usuarios y permisos · Suscripción y pagos · Módulo drones (agenda + entrega de resultados) · Inventario de insumos/vacunas · Agenda y calendario sanitario · Costos y rentabilidad · Métricas del hato · Días de espera (carne/leche) · Fotos documentales por evento · Mapa GPS de lotes · QR imprimible por animal · Multi-finca por usuario · Importar/exportar datos · Integra VetConecta Rural (fase 2-3)
+Además, **super-admin** (Brayan) a nivel de plataforma: suscripciones, afiliados, métricas globales.
 
-**Excluido del MVP (decidido):** WhatsApp (fase 2+), pagos Wompi (fase 2).
+## 4. Módulos (23 diseñados)
+
+Los 21 originales: Dashboard de finca · Animales (fichas) · Salud e historial clínico · Reproducción y crías · Pesajes y crecimiento · Lotes y ubicación · Alertas in-app + push · Reportes exportables · Usuarios y permisos · Suscripción y pagos · Módulo drones (agenda + entrega de resultados) · Inventario de insumos/vacunas · Agenda y calendario sanitario · Costos y rentabilidad · Métricas del hato · Días de espera (carne/leche) · Fotos documentales por evento · Mapa GPS de lotes · QR imprimible por animal · Multi-finca por usuario · Importar/exportar datos · Integra VetConecta Rural (fase 2-3).
+
+Agregados en el diseño: **Tienda virtual** (aretes, insumos, recompra) y **Transferencia de animales** entre usuarios al vender. Peso estimado por foto y asistente IA de VetConecta quedan para fase 2-3.
+
+**Alcance de la Fase 1 (lo que se programa primero):** inicio de sesión por SMS, fincas, animales, nuevo animal con arete, ficha, registro de vacuna/tratamiento/pesaje manual/parto, días de retiro automáticos (con bloqueo de venta o sacrificio), alertas básicas y reporte ICA. Modelo de datos y sincronización: `docs/MODELO_DATOS.md`.
+
+**Excluido del MVP (decidido):** WhatsApp (fase 2+), pagos Wompi (fase 2), GPS/geocercas y temperatura (fase 2), tienda, IA, drones y modo noche (fase 3+).
 
 ## 5. Roadmap en 4 fases (12 meses)
 
@@ -48,7 +58,7 @@ Dashboard de finca · Animales (fichas) · Salud e historial clínico · Reprodu
 |---|---|---|
 | **Fase 1 — MVP + validación** | 1-3 | Monorepo + app offline-first core (finca, animales, salud, QR, alertas, reportes) + backend + auth · **Prototipo Meshtastic (2-3 placas <USD $200)** · Muestras de hardware (RFID + 2-3 GPS LoRa) · **Piloto en 2 fincas aliadas (60 días)** |
 | **Fase 2 — Rastreo + ingresos** | 4-6 | Integración GPS LoRaWAN (MQTT/API a TrazAgro) + mapa y geocerca · NFC en arete · Pagos Wompi/PSE/Nequi · Planes de suscripción en vivo · SNIITA/ICA (inicio) · **Primeras ventas: 10 kits vía gremio** |
-| **Fase 3 — Profundización** | 7-9 | Módulos avanzados: reproducción, pesajes, costos, días de espera, drones, inventario, agenda · **Acelerómetro: celo + animal inmóvil/muerto** · SNIITA/ICA completo · WhatsApp · Escala a ~30 fincas |
+| **Fase 3 — Profundización** | 7-9 | Módulos avanzados: reproducción, pesajes, costos, días de espera, drones, inventario, agenda · **Acelerómetro: celo + animal inmóvil/muerto** · SNIITA/ICA completo · **Convenio con el ICA para enviar novedades directo a SINIGAN V6 (hoy solo por sinigan.co o su app; no hay API pública)** · WhatsApp · Escala a ~30 fincas |
 | **Fase 4 — Diferenciación** | 10-12 | Ambiental de establo (si hay demanda lechera) · I+D analítica acústica ML · Maduración Meshtastic · Optimización y cierre de resultados Fondo Emprender · Expansión a otros gremios |
 
 **Módulos de roadmap confirmados (análisis AnimalWatch365):** NFC (fase 2) · Acelerómetro celo/inmóvil (fase 2-3) · Ambiental establo (fase 4) · Acústica ML (fase 4+).
@@ -99,9 +109,11 @@ Dashboard de finca · Animales (fichas) · Salud e historial clínico · Reprodu
 
 ## 8. Diseño visual (decidido)
 
-- **Territorio:** verde agro (bosque `#2D6A4F`) + **acento tierra** (`#C77B30`) · profesional-rural
-- **Tipografía:** Inter o Plus Jakarta Sans (robusta, legible a campo)
-- **Modo oscuro** incluido · fotografías de campo reales
+- **Dirección:** "Órbita conectada" · verde selva `#1B5E20` + lima `#AED581` + tierra `#6D4C41` sobre crema `#F7F5EF`
+- **Tipografía:** Outfit (títulos y texto) · botones grandes y lenguaje del campo
+- **Elementos:** encabezado verde con ola de pasto, arete con número como chip, anillos de órbita del logo
+- **Tokens en código:** `packages/shared/src/tokens.ts` (fuente única de colores, fuentes, radios y sombras)
+- **Modo noche "Noche de campo"** diseñado (fase 3) · fotografías de campo reales
 - **Onboarding:** asistente guiado + **datos demo** para explorar sin miedo
 
 ## 9. Validación obligatoria ANTES de invertir (reglas anti-riesgo)
