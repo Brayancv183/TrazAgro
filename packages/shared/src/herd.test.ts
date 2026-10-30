@@ -12,7 +12,8 @@ const ev = (over: Partial<AnimalEvent>): AnimalEvent => ({ id: Math.random().toS
 describe("reproStatus", () => {
   it("goes parida → servida → preñada with the expected calving date", () => {
     const calving = ev({ type: "parto", date: "2026-03-01" });
-    expect(reproStatus([calving], TODAY)).toMatchObject({ state: "parida", openDays: 243 });
+    expect(reproStatus([calving], TODAY)).toMatchObject({ state: "vacia", openDays: 243 });
+    expect(reproStatus([ev({ type: "parto", date: "2026-10-01" })], TODAY)).toMatchObject({ state: "parida", openDays: 29 });
     const service = ev({ type: "servicio", date: "2026-09-01", notes: "monta: Toro" });
     expect(reproStatus([calving, service], TODAY)).toMatchObject({ state: "servida", checkOn: "2026-10-16" });
     const check = ev({ type: "diagnostico", date: "2026-10-20", notes: "preñada" });

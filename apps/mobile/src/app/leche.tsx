@@ -5,7 +5,7 @@ import {
   addDays, colors, fonts, milkByDay, num, radius, reproStatus, shadow, shortDate, todayDay, type MilkRecord,
 } from "@trazagro/shared";
 import { listAnimals, listFarmEvents, listMilk, recordMilk } from "../db/repo";
-import { useFarmId } from "../lib/farm";
+import { useFarm, useFarmId } from "../lib/farm";
 import { useDbQuery } from "../lib/useDb";
 import { DateField, splitDay, toDay } from "../ui/DateField";
 import { Banner, Button, Card, Chip, EarTag, Field, GreenHeader, Txt } from "../ui/kit";
@@ -17,6 +17,7 @@ const liters = (t?: string) => Number((t ?? "").replace(",", ".")) || 0;
 export default function LecheScreen() {
   const db = useSQLiteContext();
   const farmId = useFarmId();
+  const canEdit = useFarm().can("milk");
   const today = todayDay();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"vaca" | "tanque">("vaca");
@@ -105,9 +106,9 @@ export default function LecheScreen() {
               )}
               <Button label={total > 0 ? `Guardar ${num(total)} litros` : "Escribe los litros"} disabled={!(total > 0) || !day || day > today} onPress={save} />
             </Card>
-          ) : (
+          ) : canEdit ? (
             <Button icon="milk" label="Anotar ordeño" onPress={() => { setSaved(undefined); setOpen(true); }} />
-          )}
+          ) : null}
 
           <Txt w="extrabold" size={19} style={{ marginTop: 6 }}>Por vaca · promedio 7 días</Txt>
           {(data?.cows ?? []).map((c) => {

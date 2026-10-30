@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import { seedDemo, seedDemoV5 } from "./seed";
 
-const DATABASE_VERSION = 5;
+const DATABASE_VERSION = 6;
 
 /** Runs before the app renders (SQLiteProvider onInit). Each block upgrades one version. */
 export async function migrate(db: SQLiteDatabase) {
@@ -143,6 +143,16 @@ CREATE INDEX milk_farm ON milk(farm_id, date);
 `);
     await seedDemoV5(db);
     version = 5;
+  }
+
+  if (version === 5) {
+    // Demo farms were seeded "today", so animals added to them never showed up as ICA arrivals.
+    await db.execAsync(`
+UPDATE animals SET created_at = strftime('%Y-%m-%dT12:00:00.000Z', 'now', '-400 days')
+  WHERE farm_id IN (SELECT id FROM farms WHERE is_demo = 1) AND created_at = (SELECT created_at FROM farms f WHERE f.id = animals.farm_id);
+UPDATE farms SET created_at = strftime('%Y-%m-%dT12:00:00.000Z', 'now', '-400 days') WHERE is_demo = 1;
+`);
+    version = 6;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

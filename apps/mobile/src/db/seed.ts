@@ -9,6 +9,8 @@ export async function seedDemo(db: SQLiteDatabase) {
   const today = todayDay();
   const ago = (days: number) => addDays(today, -days);
   const now = new Date().toISOString();
+  // The demo farm has existed for a while: its initial herd is not a recent ICA arrival.
+  const since = `${ago(400)}T12:00:00.000Z`;
 
   const farms = [
     ["demo-f1", "Finca La Esperanza", "Pitalito", "Huila", 45, "ICA-HUI-001234"],
@@ -76,13 +78,13 @@ export async function seedDemo(db: SQLiteDatabase) {
 
   await db.withTransactionAsync(async () => {
     for (const f of farms) {
-      await db.runAsync("INSERT INTO farms VALUES (?,?,?,?,?,?,1,?,?)", ...f, now, now);
+      await db.runAsync("INSERT INTO farms VALUES (?,?,?,?,?,?,1,?,?)", ...f, since, now);
     }
     for (const l of lots) await db.runAsync("INSERT INTO lots VALUES (?,?,?,?)", ...l);
     for (const a of animals) {
       await db.runAsync(
         "INSERT INTO animals (id,farm_id,lot_id,tag_visual,rfid,name,sex,breed,birth_date,origin,mother_id,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,'activo',?,?)",
-        ...a, now, now,
+        ...a, since, now,
       );
     }
     for (const p of products) await db.runAsync("INSERT INTO products VALUES (?,?,?,?,?,?,?,?,?)", ...p);
@@ -119,7 +121,7 @@ export async function seedDemoV5(db: SQLiteDatabase) {
     }
     for (let d = 13; d >= 0; d--) {
       for (const [i, [animal, base]] of cows.entries()) {
-        const liters = base + ((d * 7 + i * 3) % 5) - 2;
+        const liters = base + Math.round(Math.sin(d * 1.7 + i) * 2 + Math.cos(d * 0.9) * 1.5);
         await db.runAsync("INSERT OR IGNORE INTO milk (id,farm_id,date,session,animal_id,liters,created_at) VALUES (?,?,?,?,?,?,?)",
           `demo-m-${d}-${i}`, "demo-f1", ago(d), "dia", animal, liters, now);
       }

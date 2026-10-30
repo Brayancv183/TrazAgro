@@ -7,7 +7,7 @@ import {
   type Animal, type ReproState, type ReproStatus,
 } from "@trazagro/shared";
 import { listAnimals, listFarmEvents, recordSimple } from "../db/repo";
-import { useFarmId } from "../lib/farm";
+import { useFarm, useFarmId } from "../lib/farm";
 import { useDbQuery } from "../lib/useDb";
 import { DateField, splitDay, toDay } from "../ui/DateField";
 import { Banner, Button, Chip, EarTag, Empty, Field, GreenHeader, Sheet, Txt } from "../ui/kit";
@@ -26,6 +26,7 @@ export default function ReproduccionScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const farmId = useFarmId();
+  const canEdit = useFarm().can("events");
   const today = todayDay();
   const [filter, setFilter] = useState<ReproState | "todas">("todas");
   const [target, setTarget] = useState<{ cow: Animal; status: ReproStatus }>();
@@ -44,6 +45,7 @@ export default function ReproduccionScreen() {
   function next(st: ReproStatus) {
     if (st.state === "prenada") return st.dried ? `Parto esperado ${shortDate(st.expectedCalving!, today)}` : `Secar ${shortDate(st.dryOffOn!, today)} · parto ${shortDate(st.expectedCalving!, today)}`;
     if (st.state === "servida") return `${st.checkOn! <= today ? "Ya se puede palpar" : `Palpar desde ${shortDate(st.checkOn!, today)}`} · servida ${shortDate(st.lastService!, today)}`;
+    if (st.state === "vacia" && st.lastService) return `Vacía en la palpación · servida ${shortDate(st.lastService, today)}`;
     if (st.openDays !== undefined) return `${st.openDays} días abierta · parió ${shortDate(st.lastCalving!, today)}`;
     return "Sin servicios registrados";
   }
@@ -80,10 +82,14 @@ export default function ReproduccionScreen() {
       </ScrollView>
 
       <Sheet open={!!target && !action} onClose={() => setTarget(undefined)} title={target ? `${target.cow.name ?? `#${target.cow.tagVisual}`}: ¿qué pasó?` : ""}>
-        <Button kind="soft" label="Servicio: monta o inseminación" onPress={() => setAction("servicio")} />
-        <Button kind="soft" label="Palpación: preñada o vacía" onPress={() => setAction("diagnostico")} />
-        {target?.status.state === "prenada" && !target.status.dried ? <Button kind="soft" label="Secado" onPress={() => setAction("secado")} /> : null}
-        <Button kind="soft" label="Parto: registrar la cría" onPress={() => { const id = target!.cow.id; setTarget(undefined); router.push({ pathname: "/animal/nuevo", params: { motherId: id } }); }} />
+        {canEdit ? (
+          <>
+            <Button kind="soft" label="Servicio: monta o inseminación" onPress={() => setAction("servicio")} />
+            <Button kind="soft" label="Palpación: preñada o vacía" onPress={() => setAction("diagnostico")} />
+            {target?.status.state === "prenada" && !target.status.dried ? <Button kind="soft" label="Secado" onPress={() => setAction("secado")} /> : null}
+            <Button kind="soft" label="Parto: registrar la cría" onPress={() => { const id = target!.cow.id; setTarget(undefined); router.push({ pathname: "/animal/nuevo", params: { motherId: id } }); }} />
+          </>
+        ) : null}
         <Button kind="soft" label="Ver ficha" onPress={() => { const id = target!.cow.id; setTarget(undefined); router.push({ pathname: "/animal/[id]", params: { id } }); }} />
       </Sheet>
 

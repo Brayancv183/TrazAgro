@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View
 import { useSQLiteContext } from "expo-sqlite";
 import { colors, daysBetween, EXPIRY_WARN_DAYS, money, num, radius, shadow, shortDate, todayDay, type Product, type ProductKind } from "@trazagro/shared";
 import { adjustStock, listProducts, saveProduct } from "../db/repo";
-import { useFarmId } from "../lib/farm";
+import { useFarm, useFarmId } from "../lib/farm";
 import { useDbQuery } from "../lib/useDb";
 import { DateField, splitDay, toDay, type DayParts } from "../ui/DateField";
 import { Icon, type IconName } from "../ui/Icon";
@@ -22,6 +22,7 @@ const decimal = (t: string) => Number(t.replace(",", ".")) || 0;
 export default function InventarioScreen() {
   const db = useSQLiteContext();
   const farmId = useFarmId();
+  const canEdit = useFarm().can("products");
   const today = todayDay();
   const [filter, setFilter] = useState<ProductKind | "todos">("todos");
   const [editing, setEditing] = useState<Partial<Product>>();
@@ -66,15 +67,15 @@ export default function InventarioScreen() {
                   </View>
                 </View>
                 {st ? <View style={[s.status, { backgroundColor: st.bg }]}><Txt w="bold" size={12} color={st.fg}>{st.text}</Txt></View> : null}
-                <View style={{ flexDirection: "row", gap: 8 }}>
+                {canEdit ? <View style={{ flexDirection: "row", gap: 8 }}>
                   <Pressable accessibilityRole="button" accessibilityLabel={`Comprar ${p.name}`} onPress={() => setBuying(p)} style={s.action}><Txt w="bold" size={14} color={colors.selva}>+ Compré</Txt></Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel={`Descartar ${p.name}`} onPress={() => setDiscarding(p)} style={s.action}><Txt w="bold" size={14} color={colors.selva}>− Descartar</Txt></Pressable>
                   <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${p.name}`} onPress={() => setEditing(p)} style={s.action}><Txt w="bold" size={14} color={colors.selva}>Editar</Txt></Pressable>
-                </View>
+                </View> : null}
               </View>
             );
           })}
-          <Button icon="plus" label="Agregar producto" onPress={() => setEditing({ kind: filter === "todos" ? "medicina" : filter })} />
+          {canEdit ? <Button icon="plus" label="Agregar producto" onPress={() => setEditing({ kind: filter === "todos" ? "medicina" : filter })} /> : null}
         </View>
       </ScrollView>
 

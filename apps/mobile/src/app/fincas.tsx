@@ -1,14 +1,14 @@
 import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
-import { colors, plural, radius, shadow } from "@trazagro/shared";
+import { canWrite, colors, plural, radius, shadow } from "@trazagro/shared";
 import { useFarm } from "../lib/farm";
 import { Icon } from "../ui/Icon";
 import { Button, Chip, GreenHeader, Txt } from "../ui/kit";
 
 export default function FincasScreen() {
   const router = useRouter();
-  const { farm: current, farms, selectFarm, refresh } = useFarm();
+  const { farm: current, farms, roleOf, selectFarm, refresh } = useFarm();
   const total = farms.reduce((n, f) => n + f.animalCount, 0);
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
 
@@ -61,7 +61,7 @@ export default function FincasScreen() {
               </View>
             </View>
             </Pressable>
-            {item.isDemo ? null : (
+            {item.isDemo || !canWrite(roleOf(item.id), "farms") ? null : (
               <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${item.name}`} hitSlop={8} style={s.edit}
                 onPress={() => router.push({ pathname: "/finca/nueva", params: { id: item.id } })}>
                 <Icon name="edit" color={colors.selva} size={18} />

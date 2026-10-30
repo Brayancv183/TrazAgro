@@ -21,7 +21,8 @@ export default function MetricasScreen() {
     <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
       <GreenHeader back kicker={`ÚLTIMOS ${months} MESES`} title="Métricas">
         <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
-          {[3, 6, 12].map((n) => <Chip key={n} label={`${n} meses`} active={months === n} onPress={() => setMonths(n)} />)}
+          {[3, 6, 12].map((n) => <Chip key={n} label={`${n} meses`} active={months === n} onPress={() => setMonths(n)}
+            tone={months === n ? { bg: colors.lima, fg: colors.selva } : { bg: "rgba(255,255,255,0.14)", fg: colors.onDark }} />)}
         </View>
       </GreenHeader>
       {m ? (

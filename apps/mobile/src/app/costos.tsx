@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View
 import { useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import {
-  colors, EXPENSE_CATEGORIES, INCOME_CATEGORIES, money, monthName, monthSummary, radius, shadow, shiftMonth, shortDate, todayDay,
+  colors, EXPENSE_CATEGORIES, INCOME_CATEGORIES, money, monthName, monthSummary, radius, shiftMonth, shortDate, todayDay,
   type MovementKind,
 } from "@trazagro/shared";
 import { createMovement, getFarm, listMovements } from "../db/repo";

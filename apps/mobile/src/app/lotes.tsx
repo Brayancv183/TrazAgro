@@ -3,7 +3,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View
 import { useSQLiteContext } from "expo-sqlite";
 import { colors, plural, radius, shadow, todayDay, type Lot } from "@trazagro/shared";
 import { listAnimals, listLots, moveAnimals, saveLot } from "../db/repo";
-import { useFarmId } from "../lib/farm";
+import { useFarm, useFarmId } from "../lib/farm";
 import { useDbQuery } from "../lib/useDb";
 import { Icon } from "../ui/Icon";
 import { Banner, Button, Card, Chip, EarTag, Empty, Field, GreenHeader, Sheet, Txt } from "../ui/kit";
@@ -12,6 +12,7 @@ import { Banner, Button, Card, Chip, EarTag, Empty, Field, GreenHeader, Sheet, T
 export default function LotesScreen() {
   const db = useSQLiteContext();
   const farmId = useFarmId();
+  const { can } = useFarm();
   const [editing, setEditing] = useState<Partial<Lot>>();
   const [moving, setMoving] = useState<Lot>();
   const [picked, setPicked] = useState<string[]>([]);
@@ -54,21 +55,23 @@ export default function LotesScreen() {
                     <Txt w="bold" size={17}>{l.name}</Txt>
                     <Txt size={13} color={colors.textMuted}>{[l.purpose, plural(inLot.length, "animal", "animales")].filter(Boolean).join(" · ")}</Txt>
                   </View>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${l.name}`} hitSlop={8} onPress={() => setEditing(l)} style={s.small}>
-                    <Icon name="edit" color={colors.selva} size={18} />
-                  </Pressable>
+                  {can("lots") ? (
+                    <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${l.name}`} hitSlop={8} onPress={() => setEditing(l)} style={s.small}>
+                      <Icon name="edit" color={colors.selva} size={18} />
+                    </Pressable>
+                  ) : null}
                 </View>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
                   {inLot.slice(0, 8).map((a) => <Chip key={a.id} label={a.name ?? `#${a.tagVisual}`} />)}
                   {inLot.length > 8 ? <Chip label={`+${inLot.length - 8}`} /> : null}
                 </View>
-                <Button kind="soft" icon="swap" label="Pasar animales a este lote" onPress={() => { setDone(undefined); setPicked([]); setMoving(l); }} />
+                {can("animals") ? <Button kind="soft" icon="swap" label="Pasar animales a este lote" onPress={() => { setDone(undefined); setPicked([]); setMoving(l); }} /> : null}
               </Card>
             );
           })}
           {data && !lots.length ? <Empty title="Sin lotes" text="Crea el primero para agrupar tus animales." /> : null}
           {animals.some((a) => !a.lotId) ? <Banner icon="note" tone="warn" title={`${plural(animals.filter((a) => !a.lotId).length, "animal está", "animales están")} sin lote`} /> : null}
-          <Button icon="plus" label="Nuevo lote" onPress={() => setEditing({})} />
+          {can("lots") ? <Button icon="plus" label="Nuevo lote" onPress={() => setEditing({})} /> : null}
         </View>
       </ScrollView>
 

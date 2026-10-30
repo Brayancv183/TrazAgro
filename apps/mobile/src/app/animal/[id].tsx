@@ -1,10 +1,11 @@
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  addDays, ageText, categoryOf, colors, inWithdrawal, num, radius, REPRO_LABEL, reproStatus, shadow, shortDate, todayDay, weightSummary, withdrawalFor,
+  addDays, ageText, canWrite, categoryOf, colors, inWithdrawal, num, radius, REPRO_LABEL, reproStatus, shadow, shortDate, todayDay, weightSummary, withdrawalFor,
   type AnimalEvent, type EventType, type Product,
 } from "@trazagro/shared";
 import { getAnimal, listChildren, listEvents, listLots, listMilk, listProducts } from "../../db/repo";
+import { useFarm } from "../../lib/farm";
 import { shareText } from "../../lib/share";
 import { useDbQuery } from "../../lib/useDb";
 import { Icon, type IconName } from "../../ui/Icon";
@@ -32,6 +33,7 @@ const STATUS_LABEL = { activo: "activo", vendido: "vendido", muerto: "murió", s
 export default function FichaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { roleOf } = useFarm();
   const { data } = useDbQuery(async (db) => {
     const animal = await getAnimal(db, id);
     if (!animal) return null;
@@ -57,6 +59,7 @@ export default function FichaScreen() {
   const milkDays = new Set(milk.map((m) => m.date)).size;
   const milkAvg = milkDays ? milk.reduce((n, m) => n + m.liters, 0) / milkDays : undefined;
   const label = a.name ?? `#${a.tagVisual}`;
+  const editable = a.status === "activo" && canWrite(roleOf(a.farmId), "animals");
 
   function share() {
     const lines = [
@@ -80,7 +83,7 @@ export default function FichaScreen() {
           right={
             <View style={{ flexDirection: "row", gap: 8 }}>
               <Pressable accessibilityRole="button" accessibilityLabel="Compartir ficha" onPress={share} style={s.headBtn}><Icon name="share" color={colors.onDark} size={20} /></Pressable>
-              {a.status === "activo" ? (
+              {editable ? (
                 <Pressable accessibilityRole="button" accessibilityLabel="Editar datos" onPress={() => router.push({ pathname: "/animal/editar", params: { id: a.id } })} style={s.headBtn}>
                   <Icon name="edit" color={colors.onDark} size={20} />
                 </Pressable>
@@ -136,14 +139,14 @@ export default function FichaScreen() {
               {events.map((e, i) => <EventRow key={e.id} e={e} products={products} today={today} last={i === events.length - 1} />)}
             </Card>
           )}
-          {a.status === "activo" ? (
+          {editable ? (
             <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: "/animal/baja", params: { id: a.id } })} style={s.exit}>
               <Txt w="bold" size={15} color={colors.danger}>Dar de baja: venta, muerte o sacrificio</Txt>
             </Pressable>
           ) : null}
         </View>
       </ScrollView>
-      {a.status === "activo" ? (
+      {editable ? (
         <View style={s.bar}>
           <Button kind="lime" icon="plus" label="Registrar vacuna, pesaje o parto" style={{ flex: 1, minHeight: 52 }}
             onPress={() => router.push({ pathname: "/evento/nuevo", params: { farmId: a.farmId, animalId: a.id } })} />

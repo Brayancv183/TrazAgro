@@ -16,7 +16,8 @@ import { TAB_BAR_SPACE } from "../../ui/TabBar";
 export default function EscanearScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
-  const { farm } = useFarm();
+  const { farm, can } = useFarm();
+  const canEdit = can("events");
   const input = useRef<ComponentRef<typeof TextInput>>(null);
   const [code, setCode] = useState("");
   const [corral, setCorral] = useState(false);
@@ -61,7 +62,7 @@ export default function EscanearScreen() {
           {notFound ? (
             <>
               <Banner icon="tag" tone="warn" title={`No hay un animal activo con “${notFound}”`} text="Revisa el número o regístralo ahora con ese arete." />
-              <Button kind="soft" icon="plus" label={`Registrar con ${notFound}`} onPress={() => router.push({ pathname: "/animal/nuevo", params: { tag: notFound } })} />
+              {canEdit ? <Button kind="soft" icon="plus" label={`Registrar con ${notFound}`} onPress={() => router.push({ pathname: "/animal/nuevo", params: { tag: notFound } })} /> : null}
             </>
           ) : null}
 
@@ -80,7 +81,7 @@ export default function EscanearScreen() {
                   </Pressable>
                 </View>
               ))}
-              {batch.length ? (
+              {batch.length && canEdit ? (
                 <Button icon="check" label={`Registrar a los ${batch.length}`}
                   onPress={() => router.push({ pathname: "/evento/nuevo", params: { animalIds: batch.map((a) => a.id).join(",") } })} />
               ) : null}

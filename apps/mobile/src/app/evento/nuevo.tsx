@@ -8,6 +8,7 @@ import {
 } from "@trazagro/shared";
 import { listAnimals, listFarmEvents, listLots, listProducts, recordEvents, type RecordableType } from "../../db/repo";
 import { useFarmId } from "../../lib/farm";
+import { RequireWrite } from "../../ui/NoPermission";
 import { useDbQuery } from "../../lib/useDb";
 import { DateField, splitDay, toDay } from "../../ui/DateField";
 import { Icon, type IconName } from "../../ui/Icon";
@@ -27,7 +28,7 @@ const TYPES: { id: Kind; label: string; icon: IconName; bg: string; fg: string }
 const PRODUCT_KIND: Partial<Record<Kind, ProductKind>> = { vacuna: "vacuna", tratamiento: "medicina", desparasitacion: "medicina" };
 const STEPS = ["Qué", "Quién", "Detalles", "Listo"];
 
-export default function RegistrarEventoScreen() {
+function RegistrarEventoScreen() {
   // animalIds (comma separated) comes from "Corral rápido"; kind preselects the type from the Crear sheet.
   const { farmId: farmParam, animalId, animalIds, kind: kindParam } = useLocalSearchParams<{ farmId?: string; animalId?: string; animalIds?: string; kind?: Kind }>();
   const farmId = useFarmId(farmParam);
@@ -323,3 +324,7 @@ const s = StyleSheet.create({
   backBtn: { minHeight: 52, paddingHorizontal: 18, borderRadius: 26, backgroundColor: "rgba(255,255,255,0.12)", justifyContent: "center" },
   successIcon: { alignSelf: "center", width: 88, height: 88, borderRadius: 44, backgroundColor: colors.limaSoft, alignItems: "center", justifyContent: "center", marginTop: 12 },
 });
+
+export default function Screen() {
+  return <RequireWrite table="events"><RegistrarEventoScreen /></RequireWrite>;
+}

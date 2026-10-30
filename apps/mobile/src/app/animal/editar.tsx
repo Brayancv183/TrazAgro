@@ -4,11 +4,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { todayDay, type Animal, type AnimalSex, type Lot } from "@trazagro/shared";
 import { DuplicateTagError, getAnimal, listLots, updateAnimal } from "../../db/repo";
+import { RequireWrite } from "../../ui/NoPermission";
 import { DateField, splitDay, toDay, type DayParts } from "../../ui/DateField";
 import { Banner, Button, Chip, Field, GreenHeader, Txt } from "../../ui/kit";
 
 /** Corrects an animal's data: ear tag, RFID, name, sex, breed, birth date, lot and sire. */
-export default function EditarAnimalScreen() {
+function EditarAnimalScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const router = useRouter();
@@ -86,4 +87,8 @@ export default function EditarAnimalScreen() {
       </ScrollView>
     </KeyboardAvoidingView>
   );
+}
+
+export default function Screen() {
+  return <RequireWrite table="animals"><EditarAnimalScreen /></RequireWrite>;
 }

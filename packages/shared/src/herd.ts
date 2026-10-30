@@ -10,6 +10,8 @@ export const GESTATION_DAYS = 283;
 export const CHECK_AFTER_DAYS = 45;
 /** Dry the cow this many days before the expected calving. */
 export const DRY_OFF_DAYS = 60;
+/** After calving the cow counts as "recién parida" this long; then she is open (vacía) until served. */
+export const FRESH_DAYS = 60;
 
 export type ReproState = "vacia" | "servida" | "prenada" | "parida";
 
@@ -37,7 +39,7 @@ export function reproStatus(events: AnimalEvent[], today: string): ReproStatus {
   const service = [...after].reverse().find((e) => e.type === "servicio");
   const openDays = lastCalving ? daysBetween(lastCalving, today) : undefined;
   if (!service || service.date < (lastCalving ?? "")) {
-    return { state: lastCalving ? "parida" : "vacia", lastCalving, openDays };
+    return { state: lastCalving && openDays! <= FRESH_DAYS ? "parida" : "vacia", lastCalving, openDays };
   }
   const check = [...after].reverse().find((e) => e.type === "diagnostico" && e.date >= service.date);
   if (!check) return { state: "servida", lastCalving, lastService: service.date, checkOn: addDays(service.date, CHECK_AFTER_DAYS), openDays };

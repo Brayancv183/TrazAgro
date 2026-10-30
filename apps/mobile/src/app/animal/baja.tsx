@@ -5,6 +5,7 @@ import { useSQLiteContext } from "expo-sqlite";
 import { colors, exitCheck, money, radius, shortDate, todayDay, withdrawalFor, type ExitPurpose } from "@trazagro/shared";
 import { getAnimal, listEvents, listProducts, recordExit, transferAnimal, type ExitReason } from "../../db/repo";
 import { useFarm } from "../../lib/farm";
+import { RequireWrite } from "../../ui/NoPermission";
 import { useDbQuery } from "../../lib/useDb";
 import { DateField, splitDay, toDay } from "../../ui/DateField";
 import { Icon } from "../../ui/Icon";
@@ -21,12 +22,13 @@ const REASONS: { id: Reason; label: string; purpose?: ExitPurpose }[] = [
   { id: "traslado", label: "Pasó a otra de mis fincas", purpose: "venta_cria" },
 ];
 
-export default function BajaScreen() {
+function BajaScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
   const router = useRouter();
   const today = todayDay();
-  const { farms, refresh } = useFarm();
+  const { farms, refresh, can } = useFarm();
+  const canMoney = can("movements");
   const [reason, setReason] = useState<Reason>();
   const [toFarm, setToFarm] = useState<string>();
   const [date, setDate] = useState(splitDay(today));
@@ -131,8 +133,8 @@ export default function BajaScreen() {
           {sale ? (
             <>
               <Field label="¿A quién?" value={buyer} onChangeText={setBuyer} placeholder="Ej: Finca El Porvenir" />
-              <Field label="Precio de venta" value={price} onChangeText={(t) => setPrice(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ej: 2800000" />
-              {amount > 0 ? <Txt size={13} color={colors.textMuted}>Se anota un ingreso de {money(amount)} en Costos.</Txt> : null}
+              {canMoney ? <Field label="Precio de venta" value={price} onChangeText={(t) => setPrice(t.replace(/\D/g, ""))} keyboardType="number-pad" placeholder="Ej: 2800000" /> : null}
+              {canMoney && amount > 0 ? <Txt size={13} color={colors.textMuted}>Se anota un ingreso de {money(amount)} en Costos.</Txt> : null}
             </>
           ) : null}
           {reason === "traslado" ? (
@@ -155,3 +157,7 @@ const s = StyleSheet.create({
   check: { flexDirection: "row", gap: 12, alignItems: "center", backgroundColor: colors.card, borderRadius: radius.md, padding: 14, borderWidth: 1.5, borderColor: colors.line },
   box: { width: 26, height: 26, borderRadius: 8, borderWidth: 2, borderColor: "#B0B8AA", alignItems: "center", justifyContent: "center" },
 });
+
+export default function Screen() {
+  return <RequireWrite table="animals"><BajaScreen /></RequireWrite>;
+}
