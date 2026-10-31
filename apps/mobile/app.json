@@ -37,6 +37,12 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 180
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": { "usesCleartextTraffic": true }
+        }
       ]
     ]
   }

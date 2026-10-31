@@ -84,30 +84,50 @@ Todavía no hay proveedor de SMS. Al pedir el código, **el servidor lo imprime 
 
 La primera vez, la app muestra la bienvenida y la autorización de datos (Ley 1581). Luego crea sola dos fincas de ejemplo (**Finca La Esperanza**, Pitalito, y **Hacienda El Roble**, Garzón) con animales, vacunas, tratamientos, pesajes, servicios y palpaciones, dos semanas de leche y movimientos. Esa finca **nunca se sube al servidor**. Para probar la sincronización y el equipo, crea una finca real en **Módulos → Mis fincas → Registrar otra finca**. La finca de prueba se puede ocultar en **Ajustes**.
 
-### Probar en un celular
+### Probar en un celular Android
 
-> **Pendiente:** el proyecto todavía no tiene configurado EAS (falta `apps/mobile/eas.json` y el paquete `expo-dev-client`). Cuando se configure, los pasos serán:
+**Opción A — Expo Go (en minutos, sin compilar).** Sirve para probar y pedir cambios: cada cambio en el código aparece en el celular al instante.
 
-1. Crear una development build con EAS (una sola vez):
+1. Instala **Expo Go** desde la Play Store.
+2. Conecta el PC y el celular a la **misma red Wi-Fi**.
+3. Arranca el servidor (para iniciar sesión y sincronizar):
+
+```bash
+pnpm --filter @trazagro/backend dev
+```
+
+4. En otra terminal, arranca la app con la IP del PC (búscala con `ipconfig`, "Dirección IPv4" de la red Wi-Fi):
 
 ```bash
 cd apps/mobile
-npx eas-cli@latest build --profile development --platform android
 ```
 
-2. Instalarla en el celular y arrancar el servidor de la app:
+```powershell
+$env:EXPO_PUBLIC_API_URL="http://20.20.3.154:4000"; npx expo start
+```
+
+5. Abre Expo Go → **Scan QR code** y escanea el código que sale en la terminal.
+
+Si el celular no carga (redes de universidad o empresa suelen aislar los equipos), usa el modo túnel: `npx expo start --tunnel`. La app funciona igual; solo iniciar sesión necesita llegar al servidor. Si Windows pregunta por el firewall para Node.js, permite **redes privadas**.
+
+**Opción B — APK instalable (la app con su ícono, sin Expo Go).** Se compila en la nube de Expo (gratis, ~15 min):
 
 ```bash
-pnpm --filter @trazagro/mobile exec expo start
+cd apps/mobile
 ```
-
-3. Para que el celular encuentre el servidor, usar la IP del PC en la misma red Wi-Fi:
 
 ```bash
-set EXPO_PUBLIC_API_URL=http://192.168.1.50:4000
+npx eas-cli@latest login
 ```
 
-(en PowerShell: `$env:EXPO_PUBLIC_API_URL="http://192.168.1.50:4000"`; cambia la IP por la de tu PC).
+```bash
+npx eas-cli@latest build --profile preview --platform android
+```
+
+La primera vez pregunta si crea el proyecto en Expo y la llave de Android: responde que sí. Al terminar da un enlace y un QR: ábrelo en el celular, descarga el APK e instálalo (Android pide permitir "instalar apps de origen desconocido").
+
+- La dirección del servidor queda fija dentro del APK (`EXPO_PUBLIC_API_URL` en `apps/mobile/eas.json`, perfil `preview`). Si cambia la IP del PC, cámbiala ahí y vuelve a compilar.
+- El APK permite conexiones `http://` (sin HTTPS) solo para estas pruebas (`usesCleartextTraffic` en `app.json`). **Quitarlo** cuando el servidor tenga HTTPS en producción.
 
 ---
 
@@ -180,7 +200,7 @@ La app tiene barra inferior con **Inicio, Animales, Escanear, Alertas y Módulos
 ## Qué falta
 
 - **Conectar servicios externos:** proveedor de SMS, pagos Wompi/PSE/Nequi (Tienda y Plan hoy envían el pedido por mensaje), clave de Claude para VetConecta, collares GPS LoRa y drones.
-- **App instalada:** configurar EAS y development build; ahí entran la lectura con cámara/NFC, fotos por evento, QR imprimible y PDF con logo.
+- **App instalada:** el APK de prueba ya se puede compilar (ver arriba); falta la versión de tienda. Con la app instalada entran la lectura con cámara/NFC, fotos por evento, QR imprimible y PDF con logo.
 - **Pendientes técnicos:** modo noche, límite de pedidos de SMS por IP, lint y pruebas de la app móvil, y evitar que la sincronización vuelva a bajar los propios cambios.
 - **Servidor en producción:** desplegar (Railway + Neon).
 
