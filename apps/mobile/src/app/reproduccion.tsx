@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import {
+import { animalLabel,
   colors, monthsBetween, plural, radius, REPRO_LABEL, reproStatus, shadow, shortDate, todayDay,
   type Animal, type ReproState, type ReproStatus,
 } from "@trazagro/shared";
@@ -66,11 +66,11 @@ export default function ReproduccionScreen() {
           </View>
           {data && !rows.length ? <Empty title="Ninguna en este grupo" text="Las hembras de más de 15 meses aparecen aquí." /> : null}
           {rows.map(({ cow, status }) => (
-            <Pressable key={cow.id} accessibilityRole="button" accessibilityLabel={`Registrar para ${cow.name ?? cow.tagVisual}`}
+            <Pressable key={cow.id} accessibilityRole="button" accessibilityLabel={`Registrar para ${animalLabel(cow)}`}
               onPress={() => { setSaved(undefined); setTarget({ cow, status }); }} style={({ pressed }) => [s.row, pressed && { opacity: 0.85 }]}>
               <EarTag code={cow.tagVisual} size={40} />
               <View style={{ flex: 1, gap: 2 }}>
-                <Txt w="bold" size={16}>{cow.name ?? `#${cow.tagVisual}`}</Txt>
+                <Txt w="bold" size={16}>{animalLabel(cow)}</Txt>
                 <Txt size={13} color={colors.textMuted}>{next(status)}</Txt>
               </View>
               <View style={[s.badge, { backgroundColor: STATE_TONE[status.state].bg }]}>
@@ -81,11 +81,11 @@ export default function ReproduccionScreen() {
         </View>
       </ScrollView>
 
-      <Sheet open={!!target && !action} onClose={() => setTarget(undefined)} title={target ? `${target.cow.name ?? `#${target.cow.tagVisual}`}: ¿qué pasó?` : ""}>
+      <Sheet open={!!target && !action} onClose={() => setTarget(undefined)} title={target ? `${animalLabel(target.cow)}: ¿qué pasó?` : ""}>
         {canEdit ? (
           <>
             <Button kind="soft" label="Servicio: monta o inseminación" onPress={() => setAction("servicio")} />
-            <Button kind="soft" label="Palpación: preñada o vacía" onPress={() => setAction("diagnostico")} />
+            {target?.status.lastService ? <Button kind="soft" label="Palpación: preñada o vacía" onPress={() => setAction("diagnostico")} /> : null}
             {target?.status.state === "prenada" && !target.status.dried ? <Button kind="soft" label="Secado" onPress={() => setAction("secado")} /> : null}
             <Button kind="soft" label="Parto: registrar la cría" onPress={() => { const id = target!.cow.id; setTarget(undefined); router.push({ pathname: "/animal/nuevo", params: { motherId: id } }); }} />
           </>
@@ -95,9 +95,9 @@ export default function ReproduccionScreen() {
 
       <Sheet open={!!target && !!action} onClose={() => setAction(undefined)} title={{ servicio: "Servicio", diagnostico: "Palpación", secado: "Secado" }[action ?? "servicio"]}>
         {target && action ? (
-          <ReproForm action={action} onSave={async (date, notes) => {
+          <ReproForm action={action} after={action === "diagnostico" ? target.status.lastService : undefined} onSave={async (date, notes) => {
             await recordSimple(db, farmId, [target.cow.id], action, date, notes);
-            setSaved(`Guardado para ${target.cow.name ?? `#${target.cow.tagVisual}`}`);
+            setSaved(`Guardado para ${animalLabel(target.cow)}`);
             setAction(undefined);
             setTarget(undefined);
             reload();
@@ -108,13 +108,13 @@ export default function ReproduccionScreen() {
   );
 }
 
-function ReproForm({ action, onSave }: { action: Action; onSave: (date: string, notes?: string) => void }) {
+function ReproForm({ action, after, onSave }: { action: Action; after?: string; onSave: (date: string, notes?: string) => void }) {
   const [date, setDate] = useState(splitDay(todayDay()));
   const [how, setHow] = useState<"monta" | "ia">("monta");
   const [who, setWho] = useState("");
   const [result, setResult] = useState<"preñada" | "vacia">("preñada");
   const day = toDay(date);
-  const valid = !!day && day <= todayDay() && (action !== "servicio" || !!who.trim());
+  const valid = !!day && day <= todayDay() && (!after || day >= after) && (action !== "servicio" || !!who.trim());
   return (
     <View style={{ gap: 12 }}>
       {action === "servicio" ? (
@@ -133,6 +133,8 @@ function ReproForm({ action, onSave }: { action: Action; onSave: (date: string, 
         </View>
       ) : null}
       <DateField label="Fecha" value={date} onChange={setDate} />
+      {day && after && day < after ? <Txt size={13} color={colors.danger}>{`La palpación va después del servicio (${shortDate(after)}).`}</Txt> : null}
+      {day && day > todayDay() ? <Txt size={13} color={colors.danger}>La fecha no puede ser futura.</Txt> : null}
       <Button label="Guardar" disabled={!valid} onPress={() => onSave(day!, action === "servicio" ? `${how}: ${who.trim()}` : action === "diagnostico" ? result : undefined)} />
     </View>
   );

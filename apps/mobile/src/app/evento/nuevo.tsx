@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import {
+import { animalLabel,
   colors, doseAmount, fonts, monthsBetween, num, radius, shadow, shortDate, todayDay, weightSummary, withdrawalPreview,
   type Animal, type Product, type ProductKind,
 } from "@trazagro/shared";
@@ -76,6 +76,7 @@ function RegistrarEventoScreen() {
     if (step === 1) {
       if (!chosen.length) return kind === "parto" ? "Elige la madre." : "Elige al menos un animal.";
       if (kind === "parto" && chosen.length > 1) return "Para un parto elige solo la madre.";
+      if (kind === "parto" && !pool.some((a) => a.id === chosen[0]!.id)) return "La madre debe ser una hembra de 15 meses o más.";
     }
     if (step === 2) {
       if (!day || day > today) return "Revisa la fecha.";
@@ -209,7 +210,7 @@ function RegistrarEventoScreen() {
                 <View key={a.id} style={s.weighRow}>
                   <EarTag code={a.tagVisual} size={38} tone={a.sex === "macho" ? colors.tierra : colors.selva} />
                   <View style={{ flex: 1 }}>
-                    <Txt w="bold" size={16}>{a.name ?? `#${a.tagVisual}`}</Txt>
+                    <Txt w="bold" size={16}>{animalLabel(a)}</Txt>
                     <Txt size={13} color={colors.textMuted}>{lastWeights.has(a.id) ? `Último: ${num(lastWeights.get(a.id)!)} kg` : "Sin pesajes"}</Txt>
                   </View>
                   <TextInput value={weights[a.id] ?? ""} onChangeText={(t) => reset(() => setWeights((w) => ({ ...w, [a.id]: t.replace(/[^\d.,]/g, "") })))}
@@ -290,11 +291,11 @@ function ProductNotes({ product, day, today, used }: { product: Product; day: st
 
 function AnimalPick({ a, on, onPress }: { a: Animal; on: boolean; onPress: () => void }) {
   return (
-    <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${a.name ?? ""} ${a.tagVisual ?? ""}`} onPress={onPress}
+    <Pressable accessibilityRole="checkbox" aria-checked={on} accessibilityLabel={`${a.name ?? ""} ${a.tagVisual ?? ""}`} onPress={onPress}
       style={[s.pick, { borderColor: on ? colors.selva : colors.line }]}>
       <EarTag code={a.tagVisual} size={36} tone={a.sex === "macho" ? colors.tierra : colors.selva} />
       <View style={{ flex: 1 }}>
-        <Txt w="bold" size={16}>{a.name ?? `#${a.tagVisual}`}</Txt>
+        <Txt w="bold" size={16}>{animalLabel(a)}</Txt>
         <Txt size={13} color={colors.textMuted}>{[a.tagVisual && `#${a.tagVisual}`, a.breed].filter(Boolean).join(" · ")}</Txt>
       </View>
       <View style={[s.radio, on && { borderColor: colors.selva, backgroundColor: colors.selva }]}>{on ? <Icon name="check" color={colors.onDark} size={14} width={3} /> : null}</View>

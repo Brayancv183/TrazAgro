@@ -4,7 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { colors, noveltiesFor, plural, radius, shadow, shortDate, todayDay, type Animal, type Novelty, type NoveltyKind } from "@trazagro/shared";
 import { loadFarmBundle, markReported } from "../db/repo";
-import { useFarmId } from "../lib/farm";
+import { useFarm, useFarmId } from "../lib/farm";
 import { shareText } from "../lib/share";
 import { useDbQuery } from "../lib/useDb";
 import { Banner, Button, Card, Chip, EarTag, GreenHeader, Txt } from "../ui/kit";
@@ -14,6 +14,7 @@ const KIND_LABEL: Record<NoveltyKind, string> = { nacimiento: "Nacimiento", ingr
 export default function IcaScreen() {
   const { farmId: farmParam } = useLocalSearchParams<{ farmId?: string }>();
   const farmId = useFarmId(farmParam);
+  const canMark = useFarm().can("events");
   const db = useSQLiteContext();
   const today = todayDay();
   const [busy, setBusy] = useState<string>();
@@ -63,7 +64,7 @@ export default function IcaScreen() {
         {!pending.length ? <Banner icon="check" tone="ok" title="No tienes novedades pendientes" text="De los últimos 90 días." /> : null}
         {pending.map((n) => {
           const a = byId.get(n.animalId);
-          return <NoveltyRow key={`${n.animalId}:${n.kind}`} n={n} a={a} today={today} busy={busy === `${n.animalId}:${n.kind}`} onDone={() => mark(n)} />;
+          return <NoveltyRow key={`${n.animalId}:${n.kind}`} n={n} a={a} today={today} busy={busy === `${n.animalId}:${n.kind}`} onDone={canMark ? () => mark(n) : undefined} />;
         })}
         {pending.length ? <Button kind="soft" label="Compartir la lista" onPress={share} /> : null}
         {done ? <Txt size={13} color={colors.textMuted}>{plural(done, "ya marcada como reportada", "ya marcadas como reportadas")}.</Txt> : null}
@@ -91,7 +92,7 @@ function Stat({ value, label, ok }: { value: string; label: string; ok: boolean 
   );
 }
 
-function NoveltyRow({ n, a, today, busy, onDone }: { n: Novelty; a?: Animal; today: string; busy: boolean; onDone: () => void }) {
+function NoveltyRow({ n, a, today, busy, onDone }: { n: Novelty; a?: Animal; today: string; busy: boolean; onDone?: () => void }) {
   return (
     <View style={s.row}>
       <EarTag code={a?.tagVisual} size={38} tone={a?.sex === "macho" ? colors.tierra : colors.selva} />
@@ -100,7 +101,7 @@ function NoveltyRow({ n, a, today, busy, onDone }: { n: Novelty; a?: Animal; tod
         <Txt w="bold" size={15}>{a?.name ?? `#${a?.tagVisual ?? "sin arete"}`}</Txt>
         <Txt size={13} color={colors.textMuted}>{shortDate(n.date, today)}{a?.tagVisual ? "" : " · falta el arete"}</Txt>
       </View>
-      <Button kind="soft" label={busy ? "…" : "Ya lo reporté"} onPress={onDone} disabled={busy} style={{ minHeight: 44, paddingHorizontal: 14 }} />
+      {onDone ? <Button kind="soft" label={busy ? "…" : "Ya lo reporté"} onPress={onDone} disabled={busy} style={{ minHeight: 44, paddingHorizontal: 14 }} /> : null}
     </View>
   );
 }

@@ -1,8 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { colors, daysBetween, num, radius, shadow, shortDate, todayDay, WEIGH_EVERY_DAYS, weightSummary } from "@trazagro/shared";
+import { animalLabel, colors, daysBetween, num, radius, shadow, shortDate, todayDay, WEIGH_EVERY_DAYS, weightSummary } from "@trazagro/shared";
 import { listAnimals, listFarmEvents, listLots } from "../db/repo";
-import { useFarmId } from "../lib/farm";
+import { useFarm, useFarmId } from "../lib/farm";
 import { useDbQuery } from "../lib/useDb";
 import { Button, Card, EarTag, Empty, GreenHeader, Txt } from "../ui/kit";
 
@@ -10,6 +10,7 @@ import { Button, Card, EarTag, Empty, GreenHeader, Txt } from "../ui/kit";
 export default function PesajesScreen() {
   const router = useRouter();
   const farmId = useFarmId();
+  const canEdit = useFarm().can("events");
   const today = todayDay();
   const { data } = useDbQuery(async (d) => {
     const [animals, events, lots] = await Promise.all([listAnimals(d, farmId), listFarmEvents(d, farmId), listLots(d, farmId)]);
@@ -30,7 +31,7 @@ export default function PesajesScreen() {
         <Txt w="medium" size={15} color={colors.onDarkMuted}>{data ? `${weighed.length} con peso · ${due} por pesar` : "Cargando…"}</Txt>
       </GreenHeader>
       <View style={{ paddingHorizontal: 16, gap: 12 }}>
-        <Button icon="scale" label="Registrar pesaje" onPress={() => router.push({ pathname: "/evento/nuevo", params: { kind: "pesaje" } })} />
+        {canEdit ? <Button icon="scale" label="Registrar pesaje" onPress={() => router.push({ pathname: "/evento/nuevo", params: { kind: "pesaje" } })} /> : null}
         {byLot.length ? (
           <Card style={{ gap: 8 }}>
             <Txt w="semibold" size={11} color={colors.hoja} style={{ letterSpacing: 2.2 }}>GANANCIA PROMEDIO POR LOTE</Txt>
@@ -49,7 +50,7 @@ export default function PesajesScreen() {
             <Pressable key={a.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/animal/[id]", params: { id: a.id } })} style={s.row}>
               <EarTag code={a.tagVisual} size={38} tone={a.sex === "macho" ? colors.tierra : colors.selva} />
               <View style={{ flex: 1, gap: 2 }}>
-                <Txt w="bold" size={16}>{a.name ?? `#${a.tagVisual}`}</Txt>
+                <Txt w="bold" size={16}>{animalLabel(a)}</Txt>
                 <Txt size={13} color={late ? colors.warn : colors.textMuted}>{w.lastDate ? `Pesado ${shortDate(w.lastDate, today)}${late ? " · toca pesar" : ""}` : "Nunca pesado"}</Txt>
               </View>
               <View style={{ alignItems: "flex-end" }}>

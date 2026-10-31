@@ -144,6 +144,11 @@ export function weightSummary(events: AnimalEvent[]): WeightSummary {
   };
 }
 
+/** How an animal is called on screen: its name, else its ear tag, else "Sin arete". */
+export function animalLabel(a: { name?: string; tagVisual?: string }): string {
+  return a.name || (a.tagVisual ? `#${a.tagVisual}` : "Sin arete");
+}
+
 /** "24 oct", "3 ene 2025" (year only when it differs from the reference year). */
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 export function shortDate(day: string, today?: string): string {

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { colors, exitCheck, money, radius, shortDate, todayDay, withdrawalFor, type ExitPurpose } from "@trazagro/shared";
+import { animalLabel, colors, exitCheck, money, radius, shortDate, todayDay, withdrawalFor, type ExitPurpose } from "@trazagro/shared";
 import { getAnimal, listEvents, listProducts, recordExit, transferAnimal, type ExitReason } from "../../db/repo";
 import { useFarm } from "../../lib/farm";
 import { RequireWrite } from "../../ui/NoPermission";
@@ -47,7 +47,7 @@ function BajaScreen() {
   if (!data) return <GreenHeader back title={data === null ? "No encontrado" : "Cargando…"} />;
 
   const { animal: a, events, products } = data;
-  const label = a.name ?? `#${a.tagVisual}`;
+  const label = animalLabel(a);
   const day = toDay(date);
   const w = withdrawalFor(events, products);
   const choice = REASONS.find((r) => r.id === reason);
@@ -123,7 +123,7 @@ function BajaScreen() {
             <>
               <Banner icon="drop" tone="warn" title={`${label} está en días de retiro`}
                 text={[w.milkUntil && `Leche hasta el ${shortDate(w.milkUntil, today)}`, w.meatUntil && `carne hasta el ${shortDate(w.meatUntil, today)}`].filter(Boolean).join(" · ")} />
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: warned }} onPress={() => { setError(undefined); setWarned(!warned); }} style={s.check}>
+              <Pressable accessibilityRole="checkbox" aria-checked={warned} onPress={() => { setError(undefined); setWarned(!warned); }} style={s.check}>
                 <View style={[s.box, warned && { backgroundColor: colors.selva, borderColor: colors.selva }]}>{warned ? <Icon name="check" color={colors.onDark} size={16} width={3} /> : null}</View>
                 <Txt w="semibold" size={15} style={{ flex: 1 }}>Le avisé al comprador y no va para sacrificio antes de esa fecha</Txt>
               </Pressable>

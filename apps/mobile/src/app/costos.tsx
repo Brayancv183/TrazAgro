@@ -8,12 +8,13 @@ import {
 } from "@trazagro/shared";
 import { createMovement, getFarm, listMovements } from "../db/repo";
 import { useFarmId } from "../lib/farm";
+import { RequireWrite } from "../ui/NoPermission";
 import { useDbQuery } from "../lib/useDb";
 import { DateField, splitDay, toDay } from "../ui/DateField";
 import { Icon } from "../ui/Icon";
 import { Banner, Button, Card, Chip, Empty, Field, GreenHeader, Txt } from "../ui/kit";
 
-export default function CostosScreen() {
+function CostosScreen() {
   const { farmId: farmParam } = useLocalSearchParams<{ farmId?: string }>();
   const farmId = useFarmId(farmParam);
   const db = useSQLiteContext();
@@ -128,7 +129,7 @@ function MovementForm({ kind, onSave }: { kind: MovementKind; onSave: (m: { cate
       <Field label="Valor" value={amount} onChangeText={(t) => { setError(undefined); setAmount(t.replace(/\D/g, "")); }} keyboardType="number-pad" placeholder="Ej: 320000" />
       {Number(amount) > 0 ? <Txt size={13} color={colors.textMuted}>{money(Number(amount))}</Txt> : null}
       <Field label="Detalle (opcional)" value={description} onChangeText={setDescription} placeholder={kind === "gasto" ? "Ej: Sal mineralizada, 4 bultos" : "Ej: Leche de la quincena"} />
-      <DateField label="Fecha" value={date} onChange={setDate} />
+      <DateField label="Fecha" value={date} onChange={(v) => { setError(undefined); setDate(v); }} />
       <Banner icon="note" tone="ok" title="Foto del recibo: muy pronto" text="Por ahora escribe el valor a mano." />
       {error ? <Banner icon="note" tone="danger" title={error} /> : null}
       <Button label={kind === "gasto" ? "Guardar gasto" : "Guardar ingreso"} onPress={save} />
@@ -144,3 +145,8 @@ const s = StyleSheet.create({
   fill: { height: 10, borderRadius: 5 },
   mov: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
 });
+
+// The farm's books are only for the owner and administrators.
+export default function Screen() {
+  return <RequireWrite table="movements"><CostosScreen /></RequireWrite>;
+}

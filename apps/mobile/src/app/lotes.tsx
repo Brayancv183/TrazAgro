@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSQLiteContext } from "expo-sqlite";
-import { colors, plural, radius, shadow, todayDay, type Lot } from "@trazagro/shared";
+import { animalLabel, colors, plural, radius, shadow, todayDay, type Lot } from "@trazagro/shared";
 import { listAnimals, listLots, moveAnimals, saveLot } from "../db/repo";
 import { useFarm, useFarmId } from "../lib/farm";
 import { useDbQuery } from "../lib/useDb";
@@ -62,7 +62,7 @@ export default function LotesScreen() {
                   ) : null}
                 </View>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                  {inLot.slice(0, 8).map((a) => <Chip key={a.id} label={a.name ?? `#${a.tagVisual}`} />)}
+                  {inLot.slice(0, 8).map((a) => <Chip key={a.id} label={animalLabel(a)} />)}
                   {inLot.length > 8 ? <Chip label={`+${inLot.length - 8}`} /> : null}
                 </View>
                 {can("animals") ? <Button kind="soft" icon="swap" label="Pasar animales a este lote" onPress={() => { setDone(undefined); setPicked([]); setMoving(l); }} /> : null}
@@ -84,10 +84,10 @@ export default function LotesScreen() {
           {animals.filter((a) => a.lotId !== moving?.id).map((a) => {
             const on = picked.includes(a.id);
             return (
-              <Pressable key={a.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={a.name ?? a.tagVisual}
+              <Pressable key={a.id} accessibilityRole="checkbox" aria-checked={on} accessibilityLabel={a.name ?? a.tagVisual}
                 onPress={() => setPicked(on ? picked.filter((x) => x !== a.id) : [...picked, a.id])} style={[s.pick, on && s.pickOn]}>
                 <EarTag code={a.tagVisual} size={34} tone={a.sex === "macho" ? colors.tierra : colors.selva} />
-                <Txt w="bold" size={15} style={{ flex: 1 }}>{a.name ?? `#${a.tagVisual}`}</Txt>
+                <Txt w="bold" size={15} style={{ flex: 1 }}>{animalLabel(a)}</Txt>
                 <Txt size={13} color={colors.textMuted}>{lots.find((l) => l.id === a.lotId)?.name.split(" · ")[0] ?? "Sin lote"}</Txt>
                 {on ? <Icon name="check" color={colors.selva} /> : null}
               </Pressable>

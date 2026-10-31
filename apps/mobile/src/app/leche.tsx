@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSQLiteContext } from "expo-sqlite";
-import {
+import { animalLabel,
   addDays, colors, fonts, milkByDay, num, radius, reproStatus, shadow, shortDate, todayDay, type MilkRecord,
 } from "@trazagro/shared";
 import { listAnimals, listFarmEvents, listMilk, recordMilk } from "../db/repo";
@@ -11,7 +11,9 @@ import { DateField, splitDay, toDay } from "../ui/DateField";
 import { Banner, Button, Card, Chip, EarTag, Field, GreenHeader, Txt } from "../ui/kit";
 
 const SESSION: Record<MilkRecord["session"], string> = { manana: "Mañana", tarde: "Tarde", dia: "Todo el día" };
-const liters = (t?: string) => Number((t ?? "").replace(",", ".")) || 0;
+const liters = (t?: string) => Math.max(0, Number((t ?? "").replace(",", ".")) || 0);
+/** Liters input: digits and one decimal comma only. */
+const clean = (t: string) => t.replace(/[^\d,.]/g, "").replace(".", ",");
 
 /** Daily milk: liters per cow or the tank total, the last two weeks and the average per cow. */
 export default function LecheScreen() {
@@ -58,6 +60,7 @@ export default function LecheScreen() {
     setSaved(`Guardados ${num(total)} litros del ${shortDate(day, today)}`);
     setPerCow({});
     setTank("");
+    setDate(splitDay(today));
     setOpen(false);
     reload();
   }
@@ -93,17 +96,18 @@ export default function LecheScreen() {
               </View>
               <DateField label="Fecha" value={date} onChange={setDate} />
               {mode === "tanque" ? (
-                <Field label="Litros" value={tank} onChangeText={setTank} keyboardType="decimal-pad" placeholder="Ej: 85" />
+                <Field label="Litros" value={tank} onChangeText={(t) => setTank(clean(t))} keyboardType="decimal-pad" placeholder="Ej: 85" />
               ) : (
                 (data?.cows ?? []).map((c) => (
                   <View key={c.id} style={s.cow}>
                     <EarTag code={c.tagVisual} size={34} />
-                    <Txt w="bold" size={15} style={{ flex: 1 }}>{c.name ?? `#${c.tagVisual}`}</Txt>
-                    <TextInput value={perCow[c.id] ?? ""} onChangeText={(t) => setPerCow({ ...perCow, [c.id]: t })} keyboardType="decimal-pad"
-                      placeholder="L" placeholderTextColor="#9AA39D" accessibilityLabel={`Litros de ${c.name ?? c.tagVisual}`} style={[s.input, { fontFamily: fonts.bold }]} />
+                    <Txt w="bold" size={15} style={{ flex: 1 }}>{animalLabel(c)}</Txt>
+                    <TextInput value={perCow[c.id] ?? ""} onChangeText={(t) => setPerCow({ ...perCow, [c.id]: clean(t) })} keyboardType="decimal-pad"
+                      placeholder="L" placeholderTextColor="#9AA39D" accessibilityLabel={`Litros de ${animalLabel(c)}`} style={[s.input, { fontFamily: fonts.bold }]} />
                   </View>
                 ))
               )}
+              {!day || day > today ? <Txt size={13} color={colors.danger}>Revisa la fecha: no puede ser futura.</Txt> : null}
               <Button label={total > 0 ? `Guardar ${num(total)} litros` : "Escribe los litros"} disabled={!(total > 0) || !day || day > today} onPress={save} />
             </Card>
           ) : canEdit ? (
@@ -116,7 +120,7 @@ export default function LecheScreen() {
             return (
               <View key={c.id} style={s.row}>
                 <EarTag code={c.tagVisual} size={34} />
-                <Txt w="bold" size={15} style={{ flex: 1 }}>{c.name ?? `#${c.tagVisual}`}</Txt>
+                <Txt w="bold" size={15} style={{ flex: 1 }}>{animalLabel(c)}</Txt>
                 <Txt w="extrabold" size={17}>{avg !== undefined ? `${num(avg)} L` : "—"}</Txt>
               </View>
             );

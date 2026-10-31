@@ -3,13 +3,14 @@ import { ScrollView, StyleSheet, View } from "react-native";
 import { addDays, colors, herdMetrics, money, num, radius, shadow, todayDay, type Category } from "@trazagro/shared";
 import { listMilk, loadFarmBundle } from "../db/repo";
 import { useFarmId } from "../lib/farm";
+import { RequireWrite } from "../ui/NoPermission";
 import { useDbQuery } from "../lib/useDb";
 import { Card, Chip, GreenHeader, Txt } from "../ui/kit";
 
 const CATEGORY: Record<Category, string> = { vaca: "Vacas", novilla: "Novillas", ternera: "Terneras", toro: "Toros", novillo: "Novillos", ternero: "Terneros" };
 
 /** Herd and money indicators for the last 3, 6 or 12 months. */
-export default function MetricasScreen() {
+function MetricasScreen() {
   const farmId = useFarmId();
   const today = todayDay();
   const [months, setMonths] = useState(12);
@@ -79,3 +80,8 @@ const s = StyleSheet.create({
   track: { flex: 1, height: 10, borderRadius: 5, backgroundColor: colors.limaSoft, overflow: "hidden" },
   fill: { height: 10, borderRadius: 5, backgroundColor: colors.selva },
 });
+
+// The farm's books are only for the owner and administrators.
+export default function Screen() {
+  return <RequireWrite table="movements"><MetricasScreen /></RequireWrite>;
+}

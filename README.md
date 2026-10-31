@@ -106,6 +106,7 @@ cd apps/mobile
 $env:EXPO_PUBLIC_API_URL="http://20.20.3.154:4000"; npx expo start
 ```
 
+
 5. Abre Expo Go → **Scan QR code** y escanea el código que sale en la terminal.
 
 Si el celular no carga (redes de universidad o empresa suelen aislar los equipos), usa el modo túnel: `npx expo start --tunnel`. La app funciona igual; solo iniciar sesión necesita llegar al servidor. Si Windows pregunta por el firewall para Node.js, permite **redes privadas**.

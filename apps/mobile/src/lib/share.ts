@@ -14,8 +14,9 @@ export async function shareText(title: string, text: string, fileName = `${title
     try {
       await nav.share({ title, text });
       return "shared";
-    } catch {
-      // Cancelled or not allowed here: fall back to a download.
+    } catch (e) {
+      // The person closed the sheet: do nothing. Not allowed here: fall back to a download.
+      if (e instanceof Error && e.name === "AbortError") return "cancelled";
     }
   }
   const blob = new Blob(["﻿" + text], { type: fileName.endsWith(".csv") ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8" });

@@ -1,6 +1,6 @@
 import { ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
-import { colors, plural } from "@trazagro/shared";
+import { colors, num, plural } from "@trazagro/shared";
 import { listAnimals, listLots } from "../db/repo";
 import { useFarm } from "../lib/farm";
 import { useDbQuery } from "../lib/useDb";
@@ -18,7 +18,7 @@ export default function MapaScreen() {
   return (
     <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
       <GreenHeader back kicker="SERVICIOS" title="Mapa y GPS">
-        <Txt w="medium" size={15} color={colors.onDarkMuted}>{farm ? `${farm.name}${farm.hectares ? ` · ${farm.hectares} ha` : ""}` : ""}</Txt>
+        <Txt w="medium" size={15} color={colors.onDarkMuted}>{farm ? `${farm.name}${farm.hectares ? ` · ${num(farm.hectares)} ha` : ""}` : ""}</Txt>
       </GreenHeader>
       <View style={{ paddingHorizontal: 16, gap: 10 }}>
         <Banner icon="pin" tone="warn" title="El rastreo GPS llega con el kit de collares"

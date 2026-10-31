@@ -153,6 +153,13 @@ describe("equipo y permisos", () => {
     expect(res.accepted).toEqual(["e1"]);
     expect(res.rejected[0]!.reason).toContain("Vaquero");
 
+    // The owner's books never reach the cowhand's phone.
+    const ownerMoney: SyncChange = { ...money, id: "m2", payload: { ...money.payload, id: "m2" } };
+    expect(((await push(owner, [ownerMoney])).json() as PushResponse).accepted).toEqual(["m2"]);
+    const tables = ((await pull(cowhand)).json() as PullResponse).changes.map((c) => c.table);
+    expect(tables).not.toContain("movements");
+    expect(((await pull(owner)).json() as PullResponse).changes.map((c) => c.id)).toContain("m2");
+
     const members = (await app.inject({ method: "GET", url: "/farms/f1/members", headers: auth(cowhand) })).json();
     expect(members.map((m: { role: string }) => m.role)).toEqual(["dueno", "vaquero"]);
     expect((await app.inject({ method: "POST", url: "/farms/f1/members", headers: auth(cowhand), payload: { phone: "3209990000", role: "vaquero" } })).statusCode).toBe(403);

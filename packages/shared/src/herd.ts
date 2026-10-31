@@ -1,5 +1,5 @@
 import type { Animal, AnimalEvent, MilkRecord, Movement, Product } from "./domain";
-import { addDays, categoryOf, daysBetween, monthsBetween, weightSummary, withdrawalFor, type Category } from "./rules";
+import { addDays, categoryOf, daysBetween, monthsBetween, num, weightSummary, withdrawalFor, type Category } from "./rules";
 import { WEIGH_EVERY_DAYS } from "./farm";
 
 // ---------------------------------------------------------------- reproduction
@@ -98,7 +98,7 @@ export function agenda(animals: Animal[], events: AnimalEvent[], products: Produ
     if (end) add({ id: `retiro:${a.id}`, date: end, title: `Termina el retiro de ${label}`, detail: "Desde ese día puede venderse su leche y su carne", animalId: a.id, kind: "salud" });
   }
   for (const p of products) {
-    if (p.expiresOn) add({ id: `vence:${p.id}`, date: p.expiresOn, title: `Vence ${p.name}`, detail: `Quedan ${p.stock} ${p.unit}`, productId: p.id, kind: "inventario" });
+    if (p.expiresOn) add({ id: `vence:${p.id}`, date: p.expiresOn, title: `Vence ${p.name}`, detail: `Quedan ${num(p.stock)} ${p.unit}`, productId: p.id, kind: "inventario" });
   }
   return out.sort((x, y) => x.date.localeCompare(y.date) || x.title.localeCompare(y.title));
 }

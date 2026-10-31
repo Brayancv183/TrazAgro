@@ -6,10 +6,12 @@ import {
   addDays, categoryOf, colors, inWithdrawal, shortDate, todayDay, weightSummary, withdrawalFor,
 } from "@trazagro/shared";
 import { listLots, listMilk, loadFarmBundle } from "../db/repo";
-import { useFarmId } from "../lib/farm";
+import { useFarm, useFarmId } from "../lib/farm";
 import { csvRow, shareText } from "../lib/share";
 import { Banner, GreenHeader, MenuRow, Txt } from "../ui/kit";
 
+const EVENT_LABEL: Record<string, string> = { vacuna: "Vacuna", tratamiento: "Tratamiento", desparasitacion: "Desparasitación" };
+const SESSION_LABEL = { manana: "Mañana", tarde: "Tarde", dia: "Todo el día" } as const;
 const STATUS = { activo: "Activo", vendido: "Vendido", muerto: "Muerto", sacrificado: "Sacrificado", perdido: "Perdido", trasladado: "Trasladado" } as const;
 
 /** Reports to send to the accountant, the vet, a buyer or the bank: CSV opens in Excel, text goes to WhatsApp. */
@@ -17,6 +19,7 @@ export default function ReportesScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const farmId = useFarmId();
+  const money = useFarm().can("movements");
   const [done, setDone] = useState<string>();
   const today = todayDay();
 
@@ -43,7 +46,7 @@ export default function ReportesScreen() {
       const milk = await listMilk(db, farmId, addDays(today, -30));
       const rows = milk.map((m) => {
         const a = b.animals.find((x) => x.id === m.animalId);
-        return csvRow([m.date, m.session, a ? a.name ?? a.tagVisual : "Tanque", String(m.liters).replace(".", ",")]);
+        return csvRow([m.date, SESSION_LABEL[m.session], a ? a.name ?? a.tagVisual : "Tanque", String(m.liters).replace(".", ",")]);
       });
       r = await shareText(`Leche ${b.farm.name}`, [csvRow(["Fecha", "Ordeño", "Vaca", "Litros"]), ...rows].join("\n"), `Leche_${slug}_${today}.csv`);
     } else {
@@ -52,14 +55,14 @@ export default function ReportesScreen() {
       const recent = b.events.filter((e) => ["vacuna", "tratamiento", "desparasitacion"].includes(e.type) && e.date >= addDays(today, -90)).sort((x, y) => y.date.localeCompare(x.date));
       const name = (id: string) => { const a = b.animals.find((x) => x.id === id); return a ? `${a.name ?? ""} #${a.tagVisual ?? ""}`.trim() : "?"; };
       const text = [
-        `Reporte sanitario — ${b.farm.name} (${b.farm.municipality}, ${b.farm.department})${b.farm.icaRegistration ? ` · ICA ${b.farm.icaRegistration}` : ""}`,
+        `Reporte sanitario — ${b.farm.name} (${b.farm.municipality}, ${b.farm.department})${b.farm.icaRegistration ? ` · ${/^ICA/i.test(b.farm.icaRegistration) ? "" : "ICA "}${b.farm.icaRegistration}` : ""}`,
         `Fecha: ${shortDate(today)} · ${active.length} animales activos`,
         "",
         retiro.length ? "EN DÍAS DE RETIRO:" : "Ningún animal en días de retiro.",
         ...retiro.map(({ a, w }) => `· ${name(a.id)}: leche hasta ${w.milkUntil ? shortDate(w.milkUntil) : "—"}, carne hasta ${w.meatUntil ? shortDate(w.meatUntil) : "—"}`),
         "",
         "APLICACIONES (90 días):",
-        ...recent.map((e) => `· ${shortDate(e.date)} ${e.type} — ${name(e.animalId)} — ${b.products.find((p) => p.id === e.productId)?.name ?? ""} ${e.dose ?? ""}`.trim()),
+        ...recent.map((e) => `· ${shortDate(e.date)} ${EVENT_LABEL[e.type] ?? e.type} — ${name(e.animalId)} — ${b.products.find((p) => p.id === e.productId)?.name ?? ""} ${e.dose ?? ""}`.trim()),
         "",
         "Generado con TrazAgro",
       ].join("\n");
@@ -77,7 +80,7 @@ export default function ReportesScreen() {
         {done ? <Banner icon="check" tone="ok" title={done} /> : null}
         <MenuRow icon="tag" title="Inventario del hato" detail="Excel (CSV) con aretes, categorías, lotes y pesos" onPress={() => run("inventario")} />
         <MenuRow icon="syringe" title="Reporte sanitario" detail="Retiros activos y aplicaciones de 90 días" onPress={() => run("sanidad")} />
-        <MenuRow icon="money" title="Ingresos y gastos" detail="Excel (CSV) del último año" onPress={() => run("finanzas")} />
+        {money ? <MenuRow icon="money" title="Ingresos y gastos" detail="Excel (CSV) del último año" onPress={() => run("finanzas")} /> : null}
         <MenuRow icon="milk" title="Producción de leche" detail="Excel (CSV) de 30 días" onPress={() => run("leche")} />
         <MenuRow icon="note" title="Novedades ICA" detail="Nacimientos, compras y salidas para SINIGAN" onPress={() => router.push("/ica")} />
         <Txt size={12} color={colors.textMuted}>Los archivos CSV abren en Excel o Google Sheets. El PDF con logo llega en la app instalada.</Txt>

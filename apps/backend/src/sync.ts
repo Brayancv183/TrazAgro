@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { APPEND_ONLY, canWrite, isNewer, ROLE_LABEL, SYNC_TABLES, type PullResponse, type PushResponse, type Role, type SyncChange } from "@trazagro/shared";
+import { APPEND_ONLY, canSeeMoney, canWrite, isNewer, ROLE_LABEL, SYNC_TABLES, type PullResponse, type PushResponse, type Role, type SyncChange } from "@trazagro/shared";
 import type { Db } from "./db";
 
 const PAGE = 500;
@@ -70,11 +70,16 @@ export function syncRoutes(app: FastifyInstance, db: Db) {
   app.get("/sync/pull", { onRequest: [app.authenticate] }, async (req, reply) => {
     const q = PullQuery.safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: "Parámetro since no válido" });
-    const mine = [...(await farmRoles(db, req.user.sub)).keys()];
+    const roles = await farmRoles(db, req.user.sub);
+    const mine = [...roles.keys()];
     if (!mine.length) return { changes: [], cursor: q.data.since, more: false } satisfies PullResponse;
+    // Roles that "no ven la plata" never receive the farm's books.
+    const noMoney = mine.filter((f) => !canSeeMoney(roles.get(f)!));
     const rows = await db.query<{ table_name: SyncChange["table"]; id: string; payload: Record<string, unknown>; seq: string }>(
-      `SELECT table_name, id, payload, seq FROM records WHERE farm_id = ANY($1) AND seq > $2 ORDER BY seq LIMIT $3`,
-      [mine, q.data.since, PAGE + 1],
+      `SELECT table_name, id, payload, seq FROM records
+       WHERE farm_id = ANY($1) AND seq > $2 AND NOT (table_name = 'movements' AND farm_id = ANY($4))
+       ORDER BY seq LIMIT $3`,
+      [mine, q.data.since, PAGE + 1, noMoney],
     );
     const page = rows.slice(0, PAGE);
     const res: PullResponse = {

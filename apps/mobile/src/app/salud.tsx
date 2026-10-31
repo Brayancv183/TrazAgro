@@ -1,8 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
-import { addDays, colors, inWithdrawal, plural, radius, shadow, shortDate, todayDay, withdrawalFor } from "@trazagro/shared";
+import { animalLabel, addDays, colors, inWithdrawal, plural, radius, shadow, shortDate, todayDay, withdrawalFor } from "@trazagro/shared";
 import { listAnimals, listFarmEvents, listProducts } from "../db/repo";
-import { useFarmId } from "../lib/farm";
+import { useFarm, useFarmId } from "../lib/farm";
 import { useDbQuery } from "../lib/useDb";
 import { Icon } from "../ui/Icon";
 import { Button, Card, EarTag, Empty, GreenHeader, Txt } from "../ui/kit";
@@ -14,6 +14,7 @@ const LABEL = { vacuna: "Vacuna", tratamiento: "Tratamiento", desparasitacion: "
 export default function SaludScreen() {
   const router = useRouter();
   const farmId = useFarmId();
+  const canEdit = useFarm().can("events");
   const today = todayDay();
   const { data } = useDbQuery(async (d) => {
     const [animals, events, products] = await Promise.all([listAnimals(d, farmId), listFarmEvents(d, farmId), listProducts(d, farmId)]);
@@ -45,7 +46,7 @@ export default function SaludScreen() {
           <Stat value={animals.length ? `${Math.round((covered / animals.length) * 100)}%` : "—"} label="vacunados en el año" />
           <Stat value={animals.length ? `${Math.round((animals.filter((a) => dewormed.has(a.id)).length / animals.length) * 100)}%` : "—"} label="desparasitados (4 meses)" />
         </View>
-        <Button icon="syringe" label="Registrar vacuna o tratamiento" onPress={() => router.push({ pathname: "/evento/nuevo", params: { kind: "vacuna" } })} />
+        {canEdit ? <Button icon="syringe" label="Registrar vacuna o tratamiento" onPress={() => router.push({ pathname: "/evento/nuevo", params: { kind: "vacuna" } })} /> : null}
 
         <Txt w="extrabold" size={19} style={{ marginTop: 6 }}>En días de retiro</Txt>
         <Txt size={13} color={colors.textMuted}>No vender su leche ni sacrificarlos hasta la fecha indicada.</Txt>
@@ -54,7 +55,7 @@ export default function SaludScreen() {
           <Pressable key={a.id} accessibilityRole="button" onPress={() => router.push({ pathname: "/animal/[id]", params: { id: a.id } })} style={s.row}>
             <EarTag code={a.tagVisual} size={38} tone={colors.warn} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Txt w="bold" size={16}>{a.name ?? `#${a.tagVisual}`}</Txt>
+              <Txt w="bold" size={16}>{animalLabel(a)}</Txt>
               <Txt size={13} color={colors.warn}>{[on.milk && `Leche hasta ${shortDate(w.milkUntil!, today)}`, on.meat && `Carne hasta ${shortDate(w.meatUntil!, today)}`].filter(Boolean).join(" · ")}</Txt>
             </View>
             <Icon name="chevron" color={colors.textMuted} size={18} />

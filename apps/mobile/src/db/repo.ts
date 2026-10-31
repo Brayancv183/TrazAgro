@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import { randomUUID } from "expo-crypto";
+import { num } from "@trazagro/shared";
 import type { Animal, AnimalEvent, AnimalOrigin, AnimalSex, EventType, Farm, Lot, MilkRecord, Movement, MovementKind, NoveltyKind, Product, ProductKind, WeightMethod } from "@trazagro/shared";
 
 type Row = Record<string, any>;
@@ -140,8 +141,9 @@ export class DuplicateTagError extends Error {
 export async function createAnimal(db: SQLiteDatabase, input: NewAnimalInput): Promise<Animal> {
   for (const code of [input.tagVisual, input.rfid]) {
     if (!code) continue;
+    // A tag of an animal that already left (sold, dead) can be reused, as when editing.
     const existing = await findByTag(db, input.farmId, code);
-    if (existing) throw new DuplicateTagError(existing);
+    if (existing && existing.status === "activo") throw new DuplicateTagError(existing);
   }
   const now = new Date().toISOString();
   const animal: Animal = {
@@ -482,8 +484,8 @@ export async function saveProduct(db: SQLiteDatabase, input: ProductInput, addSt
     await writeProduct(db, p, stock, input.id ? "update" : "insert");
     if (addStock > 0 && price > 0) {
       await insertMovement(db, {
-        farmId: p.farmId, kind: "gasto", category: input.kind === "insumo" || input.kind === "herramienta" ? "Alimentación y sal" : "Sanidad",
-        amount: price, date: date ?? new Date().toISOString().slice(0, 10), description: `Compra de ${addStock} ${p.unit} de ${p.name}`,
+        farmId: p.farmId, kind: "gasto", category: input.kind === "herramienta" ? "Mantenimiento" : input.kind === "insumo" ? "Alimentación y sal" : "Sanidad",
+        amount: price, date: date ?? new Date().toISOString().slice(0, 10), description: `Compra de ${num(addStock)} ${p.unit} de ${p.name}`,
       });
     }
   });

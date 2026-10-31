@@ -124,22 +124,30 @@ function ProductForm({ product, onSave }: { product: Partial<Product>; onSave: (
   const [stock, setStock] = useState("");
   const [price, setPrice] = useState("");
   const [error, setError] = useState<string>();
+  const [unitTouched, setUnitTouched] = useState(!!product.id);
+  // A new product suggests the usual unit for its type until the person writes one.
+  const pickKind = (k: ProductKind) => {
+    setError(undefined);
+    setKind(k);
+    if (!unitTouched) setUnit({ vacuna: "dosis", medicina: "ml", insumo: "bulto", herramienta: "unidad" }[k]);
+  };
+  const withdrawal = kind === "vacuna" || kind === "medicina";
 
   function save() {
     if (!name.trim() || !unit.trim()) return setError("Escribe el nombre y la unidad.");
     const exp = hasExpiry ? toDay(expires) : undefined;
     if (hasExpiry && !exp) return setError("Revisa la fecha de vencimiento.");
-    onSave({ name: name.trim(), kind, unit: unit.trim(), withdrawalMilkDays: Math.round(decimal(milk)), withdrawalMeatDays: Math.round(decimal(meat)), expiresOn: exp },
+    onSave({ name: name.trim(), kind, unit: unit.trim(), withdrawalMilkDays: withdrawal ? Math.round(decimal(milk)) : 0, withdrawalMeatDays: withdrawal ? Math.round(decimal(meat)) : 0, expiresOn: exp },
       product.id ? 0 : decimal(stock), product.id ? 0 : Number(price.replace(/\D/g, "")) || 0);
   }
 
   return (
     <View style={{ gap: 12, paddingBottom: 12 }}>
-      <Field label="Nombre" value={name} onChangeText={setName} placeholder="Ej: Ivermectina 1 %" />
+      <Field label="Nombre" value={name} onChangeText={(t) => { setError(undefined); setName(t); }} placeholder="Ej: Ivermectina 1 %" />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-        {(Object.keys(KIND) as ProductKind[]).map((k) => <Chip key={k} label={KIND[k].label} active={kind === k} onPress={() => setKind(k)} />)}
+        {(Object.keys(KIND) as ProductKind[]).map((k) => <Chip key={k} label={KIND[k].label} active={kind === k} onPress={() => pickKind(k)} />)}
       </View>
-      <Field label="Unidad" value={unit} onChangeText={setUnit} placeholder="ml, dosis, bulto, kg" />
+      <Field label="Unidad" value={unit} onChangeText={(t) => { setError(undefined); setUnitTouched(true); setUnit(t); }} placeholder="ml, dosis, bulto, kg" />
       {kind === "vacuna" || kind === "medicina" ? (
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}><Field label="Retiro leche (días)" value={milk} onChangeText={setMilk} keyboardType="number-pad" /></View>
@@ -147,7 +155,7 @@ function ProductForm({ product, onSave }: { product: Partial<Product>; onSave: (
         </View>
       ) : null}
       <Chip label={hasExpiry ? "Tiene fecha de vencimiento ✓" : "Agregar fecha de vencimiento"} active={hasExpiry} onPress={() => setHasExpiry(!hasExpiry)} />
-      {hasExpiry ? <DateField label="Vence el" value={expires} onChange={setExpires} /> : null}
+      {hasExpiry ? <DateField label="Vence el" value={expires} onChange={(v) => { setError(undefined); setExpires(v); }} /> : null}
       {product.id ? null : (
         <View style={{ flexDirection: "row", gap: 10 }}>
           <View style={{ flex: 1 }}><Field label="Cantidad que tienes" value={stock} onChangeText={setStock} keyboardType="decimal-pad" placeholder="Ej: 100" /></View>

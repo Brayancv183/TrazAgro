@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
-import { categoryOf, colors, fonts, inWithdrawal, radius, shadow, todayDay, withdrawalFor, type Animal } from "@trazagro/shared";
+import { animalLabel, categoryOf, colors, fonts, inWithdrawal, radius, shadow, todayDay, withdrawalFor, type Animal } from "@trazagro/shared";
 import { getFarm, listAllAnimals, listFarmEvents, listLots, listProducts } from "../../db/repo";
 import { useFarm } from "../../lib/farm";
 import { useDbQuery } from "../../lib/useDb";
@@ -42,7 +42,8 @@ export default function AnimalesScreen() {
     if (filter === "retiro" && !retiro) return false;
     if (filter.startsWith("lote:") && a.lotId !== filter.slice(5)) return false;
     const needle = q.trim().toLowerCase();
-    return !needle || [a.name, a.tagVisual, a.rfid].some((v) => v?.toLowerCase().includes(needle));
+    const bare = needle.replace(/\s/g, "");
+    return !needle || [a.name, a.tagVisual].some((v) => v?.toLowerCase().includes(needle)) || (!!bare && !!a.rfid?.replace(/\s/g, "").includes(bare));
   });
   const enRetiro = rows.filter((r) => r.retiro).length;
 
@@ -100,7 +101,7 @@ function AnimalRow({ a, category, retiro, lot }: { a: Animal; category: string; 
       style={({ pressed }) => [s.row, pressed && { opacity: 0.85 }]} accessibilityRole="button">
       <EarTag code={a.tagVisual} tone={a.sex === "macho" ? colors.tierra : colors.selva} />
       <View style={{ flex: 1, gap: 2 }}>
-        <Txt w="bold" size={17}>{a.name ?? `#${a.tagVisual}`}{a.tagVisual ? <Txt w="medium" size={14} color={colors.textMuted}>  #{a.tagVisual}</Txt> : null}</Txt>
+        <Txt w="bold" size={17}>{animalLabel(a)}{a.tagVisual ? <Txt w="medium" size={14} color={colors.textMuted}>  #{a.tagVisual}</Txt> : null}</Txt>
         <Txt size={13} color={colors.textMuted}>{[a.breed, category, lot].filter(Boolean).join(" · ")}</Txt>
       </View>
       <View style={{ alignItems: "flex-end", gap: 4 }}>

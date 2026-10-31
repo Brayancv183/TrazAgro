@@ -2,7 +2,7 @@ import { useRef, useState, type ComponentRef } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { colors, fonts, radius, shadow, type Animal } from "@trazagro/shared";
+import { animalLabel, colors, fonts, radius, shadow, type Animal } from "@trazagro/shared";
 import { findByTag } from "../../db/repo";
 import { useFarm } from "../../lib/farm";
 import { Icon } from "../../ui/Icon";
@@ -34,7 +34,7 @@ export default function EscanearScreen() {
     input.current?.focus();
     if (!a || a.status !== "activo") return setNotFound(c);
     if (!corral) return router.push({ pathname: "/animal/[id]", params: { id: a.id } });
-    setLast(batch.some((b) => b.id === a.id) ? `${a.name ?? a.tagVisual} ya estaba en el corral` : `Agregado: ${a.name ?? `#${a.tagVisual}`}`);
+    setLast(batch.some((b) => b.id === a.id) ? `${animalLabel(a)} ya estaba en el corral` : `Agregado: ${animalLabel(a)}`);
     setBatch((b) => (b.some((x) => x.id === a.id) ? b : [a, ...b]));
   }
 
@@ -74,8 +74,8 @@ export default function EscanearScreen() {
               {batch.map((a) => (
                 <View key={a.id} style={s.row}>
                   <EarTag code={a.tagVisual} size={38} tone={a.sex === "macho" ? colors.tierra : colors.selva} />
-                  <Txt w="bold" size={16} style={{ flex: 1 }}>{a.name ?? `#${a.tagVisual}`}</Txt>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Quitar ${a.name ?? a.tagVisual}`} hitSlop={8}
+                  <Txt w="bold" size={16} style={{ flex: 1 }}>{animalLabel(a)}</Txt>
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Quitar ${animalLabel(a)}`} hitSlop={8}
                     onPress={() => setBatch((b) => b.filter((x) => x.id !== a.id))}>
                     <Icon name="x" color={colors.textMuted} size={20} />
                   </Pressable>

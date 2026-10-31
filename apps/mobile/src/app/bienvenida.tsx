@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, radius } from "@trazagro/shared";
@@ -19,8 +19,11 @@ export default function BienvenidaScreen() {
   const db = useSQLiteContext();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState(0);
-  const [accepted, setAccepted] = useState(false);
+  // ?ver=1 (from Ajustes): only shows the consent text again, without changing the saved date.
+  const { ver } = useLocalSearchParams<{ ver?: string }>();
+  const review = ver === "1";
+  const [step, setStep] = useState(review ? STEPS.length : 0);
+  const [accepted, setAccepted] = useState(review);
   const last = step === STEPS.length;
 
   async function start(to: "/" | "/finca/nueva") {
@@ -54,13 +57,22 @@ export default function BienvenidaScreen() {
             </Txt>
             <Txt size={12} color={colors.textMuted}>Tratamiento de datos personales según la Ley 1581 de 2012 y el Decreto 1377 de 2013.</Txt>
           </View>
-          <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: accepted }} onPress={() => setAccepted(!accepted)} style={s.check}>
-            <View style={[s.box, accepted && { backgroundColor: colors.lima, borderColor: colors.lima }]}>{accepted ? <Icon name="check" color={colors.selva} size={16} width={3} /> : null}</View>
-            <Txt w="semibold" size={15} color={colors.onDark} style={{ flex: 1 }}>Autorizo el tratamiento de mis datos personales</Txt>
-          </Pressable>
-          <View style={{ flex: 1 }} />
-          <Button kind="lime" label="Registrar mi finca" disabled={!accepted} onPress={() => start("/finca/nueva")} />
-          <Button kind="soft" label="Explorar con la finca de prueba" disabled={!accepted} onPress={() => start("/")} />
+          {review ? (
+            <>
+              <View style={{ flex: 1 }} />
+              <Button kind="lime" label="Volver" onPress={() => (router.canGoBack() ? router.back() : router.replace("/ajustes"))} />
+            </>
+          ) : (
+            <>
+            <Pressable accessibilityRole="checkbox" aria-checked={accepted} onPress={() => setAccepted(!accepted)} style={s.check}>
+              <View style={[s.box, accepted && { backgroundColor: colors.lima, borderColor: colors.lima }]}>{accepted ? <Icon name="check" color={colors.selva} size={16} width={3} /> : null}</View>
+              <Txt w="semibold" size={15} color={colors.onDark} style={{ flex: 1 }}>Autorizo el tratamiento de mis datos personales</Txt>
+            </Pressable>
+            <View style={{ flex: 1 }} />
+            <Button kind="lime" label="Registrar mi finca" disabled={!accepted} onPress={() => start("/finca/nueva")} />
+            <Button kind="soft" label="Explorar con la finca de prueba" disabled={!accepted} onPress={() => start("/")} />
+            </>
+          )}
         </>
       )}
     </ScrollView>

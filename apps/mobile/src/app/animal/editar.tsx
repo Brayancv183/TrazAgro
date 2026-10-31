@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { todayDay, type Animal, type AnimalSex, type Lot } from "@trazagro/shared";
+import { animalLabel, todayDay, type Animal, type AnimalSex, type Lot } from "@trazagro/shared";
 import { DuplicateTagError, getAnimal, listLots, updateAnimal } from "../../db/repo";
 import { RequireWrite } from "../../ui/NoPermission";
 import { DateField, splitDay, toDay, type DayParts } from "../../ui/DateField";
@@ -51,14 +51,14 @@ function EditarAnimalScreen() {
       if (router.canGoBack()) router.back();
       else router.replace({ pathname: "/animal/[id]", params: { id: animal.id } });
     } catch (e) {
-      setError(e instanceof DuplicateTagError ? `Ese arete o chip ya lo tiene ${e.existing.name ?? `#${e.existing.tagVisual}`}.` : "No se pudo guardar. Intenta de nuevo.");
+      setError(e instanceof DuplicateTagError ? `Ese arete o chip ya lo tiene ${animalLabel(e.existing)}.` : "No se pudo guardar. Intenta de nuevo.");
     }
   }
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        <GreenHeader back kicker="EDITAR DATOS" title={animal?.name ?? (animal?.tagVisual ? `#${animal.tagVisual}` : "Animal")} />
+        <GreenHeader back kicker="EDITAR DATOS" title={animal ? animalLabel(animal) : "Animal"} />
         <View style={{ paddingHorizontal: 16, gap: 14 }}>
           <Field label="Número del arete" value={tag} onChangeText={(t) => { setError(undefined); setTag(t.replace(/\D/g, "")); }} keyboardType="number-pad" placeholder="Ej: 00123" />
           <Field label="Chip RFID (opcional)" value={rfid} onChangeText={(t) => { setError(undefined); setRfid(t); }} placeholder="Ej: 985 2024 00123" />

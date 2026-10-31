@@ -52,7 +52,7 @@ export default function AjustesScreen() {
             {consent ? `Autorizaste el tratamiento de datos el ${shortDate(consent.slice(0, 10))} (Ley 1581 de 2012).` : "Todavía no has autorizado el tratamiento de datos."}
           </Txt>
           <Txt size={13} color={colors.textMuted}>Para consultar, corregir o borrar tus datos de la nube escribe a datos@trazagro.co. Cerrar sesión borra tus fincas de este celular.</Txt>
-          <Button kind="soft" label="Ver la autorización otra vez" onPress={() => router.push("/bienvenida")} />
+          <Button kind="soft" label="Ver la autorización otra vez" onPress={() => router.push({ pathname: "/bienvenida", params: { ver: "1" } })} />
         </Card>
 
         <MenuRow icon="check" title="Cuenta y respaldo" detail="Iniciar o cerrar sesión" onPress={() => router.push("/cuenta")} />

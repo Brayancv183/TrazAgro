@@ -1,7 +1,7 @@
 import { FlatList, Pressable, StyleSheet, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
-import { canWrite, colors, plural, radius, shadow } from "@trazagro/shared";
+import { canWrite, colors, num, plural, radius, shadow } from "@trazagro/shared";
 import { useFarm } from "../lib/farm";
 import { Icon } from "../ui/Icon";
 import { Button, Chip, GreenHeader, Txt } from "../ui/kit";
@@ -52,7 +52,7 @@ export default function FincasScreen() {
             <View style={s.iconBox}><Icon name={on ? "check" : "cow"} color={colors.selva} size={26} /></View>
             <View style={{ flex: 1, gap: 4 }}>
               <Txt w="bold" size={18}>{item.name}</Txt>
-              <Txt size={14} color={colors.textMuted}>{item.municipality}, {item.department}{item.hectares ? ` · ${item.hectares} ha` : ""}</Txt>
+              <Txt size={14} color={colors.textMuted}>{item.municipality}, {item.department}{item.hectares ? ` · ${num(item.hectares)} ha` : ""}</Txt>
               <View style={{ flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
                 <Chip label={plural(item.animalCount, "animal", "animales")} tone={{ bg: colors.limaSoft, fg: colors.selva }} />
                 {on ? <Chip label="Actual" tone={{ bg: colors.selva, fg: colors.onDark }} /> : null}

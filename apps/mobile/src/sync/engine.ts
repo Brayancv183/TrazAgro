@@ -93,17 +93,35 @@ async function doSync(db: SQLiteDatabase, token: string): Promise<SyncResult> {
   if (mine.some((f) => !known.has(f.farmId))) await setState(db, "cursor", "0");
   await setState(db, "farms", JSON.stringify(mine.map((f) => f.farmId)));
 
-  // 3. Pull: page through everything after the saved cursor.
+  // Farms the person no longer belongs to (removed from the team) leave this phone, unless they still
+  // have unsent changes (a farm created here is only on the server after its push is accepted).
+  const member = new Set(mine.map((f) => f.farmId));
+  const local = await db.getAllAsync<{ id: string }>("SELECT id FROM farms WHERE is_demo = 0");
+  for (const { id } of local) {
+    if (member.has(id)) continue;
+    const pending = await db.getFirstAsync("SELECT 1 FROM sync_outbox WHERE payload LIKE ? LIMIT 1", `%${id}%`);
+    if (!pending) await removeFarmData(db, id);
+  }
+
+  // 3. Pull: page through everything after the saved cursor. The server orders by change, so an edited
+  // animal can arrive after its own events, even on a later page: foreign keys are checked off while
+  // applying (PRAGMA can't change inside a transaction) and each page is applied parents first.
   let cursor = Number((await getState(db, "cursor")) ?? 0);
-  for (;;) {
-    const page = await api.pull(token, cursor);
-    await db.withTransactionAsync(async () => {
-      for (const c of page.changes) await applyChange(db, c);
-      await setState(db, "cursor", String(page.cursor));
-    });
-    result.pulled += page.changes.length;
-    cursor = page.cursor;
-    if (!page.more) break;
+  await db.execAsync("PRAGMA foreign_keys = OFF");
+  try {
+    for (;;) {
+      const page = await api.pull(token, cursor);
+      const ordered = [...page.changes].sort((a, b) => SYNC_TABLES.indexOf(a.table) - SYNC_TABLES.indexOf(b.table));
+      await db.withTransactionAsync(async () => {
+        for (const c of ordered) await applyChange(db, c);
+        await setState(db, "cursor", String(page.cursor));
+      });
+      result.pulled += page.changes.length;
+      cursor = page.cursor;
+      if (!page.more) break;
+    }
+  } finally {
+    await db.execAsync("PRAGMA foreign_keys = ON");
   }
 
   await setState(db, "last_sync", new Date().toISOString());
@@ -132,6 +150,15 @@ export async function discardRejected(db: SQLiteDatabase, ids: string[]) {
   });
 }
 
+
+/** Deletes one farm and everything recorded on it from this phone (not from the server). */
+async function removeFarmData(db: SQLiteDatabase, farmId: string) {
+  await db.withTransactionAsync(async () => {
+    for (const t of ["milk", "events", "movements", "products", "animals", "lots"]) await db.runAsync(`DELETE FROM ${t} WHERE farm_id = ?`, farmId);
+    await db.runAsync("DELETE FROM farms WHERE id = ?", farmId);
+    await db.runAsync("DELETE FROM prefs WHERE key = ?", `role:${farmId}`);
+  });
+}
 
 /**
  * Sign-out on a shared phone: removes every real (non-demo) farm and its records, the outbox and the

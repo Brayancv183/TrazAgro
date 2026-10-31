@@ -2,7 +2,7 @@ import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { categoryOf, colors, monthsBetween, radius, shortDate, todayDay, type AnimalOrigin, type AnimalSex } from "@trazagro/shared";
+import { animalLabel, categoryOf, colors, monthsBetween, radius, shortDate, todayDay, type AnimalOrigin, type AnimalSex } from "@trazagro/shared";
 import { createAnimal, DuplicateTagError, listAnimals, listLots } from "../../db/repo";
 import { useFarm, useFarmId } from "../../lib/farm";
 import { RequireWrite } from "../../ui/NoPermission";
@@ -52,6 +52,7 @@ function NuevoAnimalScreen() {
   function validate(): string | undefined {
     if (step === 0 && !f.noTag && !/^\d{3,10}$/.test(f.tag.trim())) return "Escribe el número del arete (solo números) o marca que todavía no tiene.";
     if (step === 1 && (!birthDay || birthDay > today)) return "Revisa la fecha de nacimiento.";
+    if (step === 2 && f.origin === "nacido" && f.motherId && data && !mothers.some((m) => m.id === f.motherId)) return "La madre debe ser una hembra de la finca de 15 meses o más.";
     if (step === 2 && f.origin === "comprado") {
       if (!f.seller.trim()) return "Escribe a quién se lo compraste.";
       if (!boughtDay || boughtDay > today) return "Revisa la fecha de llegada.";
@@ -73,12 +74,12 @@ function NuevoAnimalScreen() {
       });
       setSavedId(animal.id);
     } catch (e) {
-      setError(e instanceof DuplicateTagError ? `Ese arete ya es de ${e.existing.name ?? "#" + e.existing.tagVisual}. Revisa el número.` : "No se pudo guardar. Intenta de nuevo.");
+      setError(e instanceof DuplicateTagError ? `Ese arete ya es de ${animalLabel(e.existing)}. Revisa el número.` : "No se pudo guardar. Intenta de nuevo.");
     }
   }
 
   if (savedId) {
-    const label = f.name.trim() || `#${f.tag}`;
+    const label = animalLabel({ name: f.name.trim(), tagVisual: f.tag || undefined });
     return (
       <View style={{ flex: 1 }}>
         <GreenHeader title="¡Listo!" kicker="NUEVO ANIMAL" />
@@ -118,7 +119,7 @@ function NuevoAnimalScreen() {
               <Field label="Código RFID del chip (opcional)" value={f.rfid} onChangeText={(t) => set({ rfid: t })} keyboardType="number-pad"
                 placeholder="Ej: 985 2024 00127" editable={!f.noTag} />
               <Banner icon="tag" tone="ok" title="¿Tienes lector RFID Bluetooth?" text="Conéctalo, toca el campo del chip y escanea: el código se escribe solo." />
-              <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: f.noTag }} onPress={() => set({ noTag: !f.noTag, tag: "", rfid: "" })} style={s.check}>
+              <Pressable accessibilityRole="checkbox" aria-checked={f.noTag} onPress={() => set({ noTag: !f.noTag, tag: "", rfid: "" })} style={s.check}>
                 <View style={[s.box, f.noTag && { backgroundColor: colors.selva, borderColor: colors.selva }]}>{f.noTag ? <Icon name="check" color={colors.onDark} size={16} width={3} /> : null}</View>
                 <View style={{ flex: 1 }}>
                   <Txt w="bold" size={15}>Todavía no tiene arete</Txt>
@@ -178,7 +179,7 @@ function NuevoAnimalScreen() {
                   ["Nombre", f.name || "—"],
                   ["Sexo y raza", `${f.sex === "hembra" ? "Hembra" : "Macho"}${f.breed ? ` · ${f.breed}` : ""}`],
                   ["Nació", `${birthDay ? shortDate(birthDay) : "—"} · ${category}`],
-                  ["Origen", f.origin === "nacido" ? `Nació aquí${f.motherId ? ` · hija de ${mothers.find((m) => m.id === f.motherId)?.name ?? ""}` : ""}` : `Comprado a ${f.seller}`],
+                  ["Origen", f.origin === "nacido" ? `Nació aquí${f.motherId ? ` · ${f.sex === "macho" ? "hijo" : "hija"} de ${animalLabel(mothers.find((m) => m.id === f.motherId) ?? {})}` : ""}` : `Comprado a ${f.seller}`],
                 ].map(([k, v], i, arr) => (
                   <View key={k} style={[s.sum, i < arr.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.line }]}>
                     <Txt size={15} color={colors.textMuted}>{k}</Txt>

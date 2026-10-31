@@ -72,7 +72,7 @@ export function Chip({ label, active, onPress, tone }: { label: string; active?:
   const bg = tone ? tone.bg : active ? colors.selva : colors.card;
   const fg = tone ? tone.fg : active ? colors.onDark : colors.text;
   return (
-    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={label} accessibilityState={{ selected: !!active }}
+    <Pressable onPress={onPress} disabled={!onPress} accessibilityRole={onPress ? "button" : undefined} accessibilityLabel={label} accessibilityState={{ selected: !!active }} aria-selected={!!active}
       style={[s.chip, { backgroundColor: bg, borderColor: active || tone ? bg : colors.line }]}>
       <Txt w="semibold" size={13} color={fg}>{label}</Txt>
     </Pressable>

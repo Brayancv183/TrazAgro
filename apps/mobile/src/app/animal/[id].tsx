@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
+import { animalLabel,
   addDays, ageText, canWrite, categoryOf, colors, inWithdrawal, num, radius, REPRO_LABEL, reproStatus, shadow, shortDate, todayDay, weightSummary, withdrawalFor,
   type AnimalEvent, type EventType, type Product,
 } from "@trazagro/shared";
@@ -39,7 +39,7 @@ export default function FichaScreen() {
     if (!animal) return null;
     const [events, children, products, lots, mother, milk] = await Promise.all([
       listEvents(db, id), listChildren(db, id), listProducts(db, animal.farmId), listLots(db, animal.farmId),
-      animal.motherId ? getAnimal(db, animal.motherId) : Promise.resolve(null), listMilk(db, animal.farmId, addDays(todayDay(), -7)),
+      animal.motherId ? getAnimal(db, animal.motherId) : Promise.resolve(null), listMilk(db, animal.farmId, addDays(todayDay(), -6)),
     ]);
     return { animal, events, children, products, lot: lots.find((l) => l.id === animal.lotId), mother, milk: milk.filter((m) => m.animalId === id) };
   }, [id]);
@@ -58,7 +58,7 @@ export default function FichaScreen() {
   const repro = a.sex === "hembra" && births + events.filter((e) => e.type === "servicio").length > 0 ? reproStatus(events, today) : undefined;
   const milkDays = new Set(milk.map((m) => m.date)).size;
   const milkAvg = milkDays ? milk.reduce((n, m) => n + m.liters, 0) / milkDays : undefined;
-  const label = a.name ?? `#${a.tagVisual}`;
+  const label = animalLabel(a);
   const editable = a.status === "activo" && canWrite(roleOf(a.farmId), "animals");
 
   function share() {
