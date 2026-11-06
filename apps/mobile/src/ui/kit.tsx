@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Animated, Modal, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
+import { Animated, Dimensions, Modal, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -84,7 +84,7 @@ export function EarTag({ code, tone = colors.link, size = 40 }: { code?: string;
         <Path d="M20 2a7 7 0 0 1 7 7v3h7a4 4 0 0 1 4 4v24a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V16a4 4 0 0 1 4-4h7V9a7 7 0 0 1 7-7z" fill={tone} />
         <Circle cx={20} cy={9} r={2.6} fill="#FFFFFF" />
       </Svg>
-      <Txt w="extrabold" size={Math.round(size * 0.3)} color={colors.onDark} style={{ position: "absolute", left: 0, right: 0, top: h * 0.42, textAlign: "center" }}>{label}</Txt>
+      <Txt w="extrabold" size={Math.round(size * 0.3)} color={tone === colors.lima ? colors.selva : colors.onDark} style={{ position: "absolute", left: 0, right: 0, top: h * 0.42, textAlign: "center" }}>{label}</Txt>
     </View>
   );
 }
@@ -210,7 +210,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(open);
   const v = useRef(new Animated.Value(0)).current;
-  const [h, setH] = useState(600);
+  const travel = Dimensions.get("window").height;
   useEffect(() => {
     if (open) {
       setMounted(true);
@@ -226,8 +226,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: colors.scrim, opacity: v }]}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Cerrar" />
       </Animated.View>
-      <Animated.View onLayout={(e) => setH(e.nativeEvent.layout.height)} accessibilityViewIsModal
-        style={[s.sheet, { paddingBottom: insets.bottom + 28, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [h, 0] }) }] }]}>
+      <Animated.View accessibilityViewIsModal
+        style={[s.sheet, { paddingBottom: insets.bottom + 28, transform: [{ translateY: v.interpolate({ inputRange: [0, 1], outputRange: [travel, 0] }) }] }]}>
         <View style={s.grip} />
         <View style={s.sheetHead}>
           <Txt w="extrabold" size={22} style={{ flex: 1 }}>{title}</Txt>

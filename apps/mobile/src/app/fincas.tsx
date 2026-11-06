@@ -1,16 +1,23 @@
-import { FlatList, Pressable, StyleSheet, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback } from "react";
-import { canWrite, colors, num, plural, radius, shadow } from "@trazagro/shared";
+import { ScrollView, StyleSheet, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
+import { canWrite, colors, num, plural, shadow } from "@trazagro/shared";
+import { alertCounts } from "../db/finca";
 import { useFarm } from "../lib/farm";
+import { useDbQuery } from "../lib/useDb";
 import { Icon } from "../ui/Icon";
-import { Button, Chip, GreenHeader, Txt } from "../ui/kit";
+import { GreenHeader, Txt } from "../ui/kit";
+import { Rise, Tap } from "../ui/motion";
+import { StatBox, StateChip } from "../ui/finca/parts";
 
+/** Fincas.dc: the open farm is a selva card, the others white; each with animals / hectares / alerts. */
 export default function FincasScreen() {
   const router = useRouter();
   const { farm: current, farms, roleOf, selectFarm, refresh } = useFarm();
   const total = farms.reduce((n, f) => n + f.animalCount, 0);
   useFocusEffect(useCallback(() => { refresh(); }, [refresh]));
+  const ids = farms.map((f) => f.id).join(",");
+  const { data: alerts } = useDbQuery((d) => alertCounts(d, ids ? ids.split(",") : []), [ids]);
 
   async function open(id: string) {
     await selectFarm(id);
@@ -18,67 +25,79 @@ export default function FincasScreen() {
   }
 
   return (
-    <FlatList
-      data={farms}
-      keyExtractor={(f) => f.id}
-      contentContainerStyle={{ paddingBottom: 32 }}
-      ListHeaderComponent={
-        <>
-          <GreenHeader back kicker="TRAZAGRO" title="Mis fincas">
-            <Txt w="medium" size={15} color={colors.onDarkMuted}>
-              {`${plural(farms.length, "finca", "fincas")} · ${plural(total, "animal activo", "animales activos")}`}
-            </Txt>
-          </GreenHeader>
-          {farms.some((f) => f.isDemo) ? (
+    <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <GreenHeader back kicker={`${plural(farms.length, "finca", "fincas")} · ${plural(total, "animal", "animales")} en total`.toUpperCase()} title="Mis fincas" waveHeight={40} />
+      <View style={s.main}>
+        {farms.some((f) => f.isDemo) ? (
+          <Rise index={0}>
             <View style={s.demo}>
-              <Icon name="note" color={colors.warn} size={18} />
-              <Txt size={13} color={colors.warn} style={{ flex: 1 }}>La finca de prueba es solo para explorar: no se sube a tu cuenta. Puedes ocultarla en Ajustes.</Txt>
+              <Icon name="info" color={colors.warn} size={18} />
+              <Txt size={13} color={colors.amberText} style={{ flex: 1, lineHeight: 18 }}>La finca de prueba es solo para explorar: no se sube a tu cuenta. Puedes ocultarla en Ajustes.</Txt>
             </View>
-          ) : null}
-        </>
-      }
-      ListFooterComponent={
-        <View style={{ paddingHorizontal: 16, marginTop: 16 }}>
-          <Button kind="soft" icon="plus" label="Registrar otra finca" onPress={() => router.push("/finca/nueva")} />
-        </View>
-      }
-      ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-      renderItem={({ item }) => {
-        const on = item.id === current?.id;
-        return (
-          <View style={[s.card, on && s.cardOn]}>
-            <Pressable onPress={() => open(item.id)} accessibilityRole="button" accessibilityLabel={`Trabajar en ${item.name}`}
-              style={({ pressed }) => [s.main, pressed && { opacity: 0.85 }]}>
-            <View style={s.iconBox}><Icon name={on ? "check" : "cow"} color={colors.selva} size={26} /></View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Txt w="bold" size={18}>{item.name}</Txt>
-              <Txt size={14} color={colors.textMuted}>{item.municipality}, {item.department}{item.hectares ? ` · ${num(item.hectares)} ha` : ""}</Txt>
-              <View style={{ flexDirection: "row", gap: 6, marginTop: 4, flexWrap: "wrap" }}>
-                <Chip label={plural(item.animalCount, "animal", "animales")} tone={{ bg: colors.limaSoft, fg: colors.selva }} />
-                {on ? <Chip label="Actual" tone={{ bg: colors.selva, fg: colors.onDark }} /> : null}
-                {item.isDemo ? <Chip label="Prueba" tone={{ bg: colors.warnSoft, fg: colors.warn }} /> : null}
-                {item.icaRegistration ? <Chip label={item.icaRegistration} tone={{ bg: colors.tierraSoft, fg: colors.tierra }} /> : null}
-              </View>
-            </View>
-            </Pressable>
-            {item.isDemo || !canWrite(roleOf(item.id), "farms") ? null : (
-              <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${item.name}`} hitSlop={8} style={s.edit}
-                onPress={() => router.push({ pathname: "/finca/nueva", params: { id: item.id } })}>
-                <Icon name="edit" color={colors.selva} size={18} />
-              </Pressable>
-            )}
-          </View>
-        );
-      }}
-    />
+          </Rise>
+        ) : null}
+
+        {farms.map((f, i) => {
+          const on = f.id === current?.id;
+          const editable = !f.isDemo && canWrite(roleOf(f.id), "farms");
+          return (
+            <Rise key={f.id} index={i + 1}>
+              <Tap onPress={() => open(f.id)} accessibilityRole="button" accessibilityLabel={`Trabajar en ${f.name}`} accessibilityState={{ selected: on }}
+                style={[s.card, on ? s.cardOn : s.cardOff]}>
+                <View style={s.top}>
+                  <View style={[s.icon, { backgroundColor: on ? "rgba(255,255,255,0.14)" : colors.greenSoft }]}>
+                    <Icon name="barn" color={on ? colors.onDark : colors.selva} size={22} />
+                  </View>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Txt w="extrabold" size={17} color={on ? colors.onDark : colors.text} numberOfLines={1}>{f.name}</Txt>
+                    <Txt size={13} color={on ? colors.onDarkMuted : colors.textMuted}>{`${f.municipality}, ${f.department}`}</Txt>
+                  </View>
+                  {on ? <StateChip label="Abierta" bg={colors.card} fg={colors.selva} /> : null}
+                </View>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <StatBox dark={on} value={f.animalCount} label={f.animalCount === 1 ? "animal" : "animales"} />
+                  <StatBox dark={on} value={f.hectares ? num(f.hectares) : "—"} label="hectáreas" />
+                  <StatBox dark={on} value={alerts?.[f.id] ?? "…"} label={alerts?.[f.id] === 1 ? "alerta" : "alertas"} />
+                </View>
+                <View style={s.bottom}>
+                  <Txt w="bold" size={12} color={on ? colors.onDarkMuted : colors.textMuted} style={{ flex: 1 }}>
+                    {`Registro ICA: ${f.icaRegistration || "pendiente"}`}
+                  </Txt>
+                  {f.isDemo ? <StateChip label="Finca de prueba" bg={on ? colors.signal : colors.warnSoft} fg={on ? colors.signalText : colors.warn} /> : null}
+                  {editable ? (
+                    <Tap accessibilityRole="button" accessibilityLabel={`Editar ${f.name}`} hitSlop={6}
+                      onPress={() => router.push({ pathname: "/finca/nueva", params: { id: f.id } })}
+                      style={[s.edit, { backgroundColor: on ? "rgba(255,255,255,0.14)" : colors.greenSoft }]}>
+                      <Icon name="edit" color={on ? colors.onDark : colors.selva} size={16} />
+                      <Txt w="bold" size={13} color={on ? colors.onDark : colors.selva}>Editar</Txt>
+                    </Tap>
+                  ) : null}
+                </View>
+              </Tap>
+            </Rise>
+          );
+        })}
+
+        <Rise index={farms.length + 1}>
+          <Tap accessibilityRole="button" accessibilityLabel="Registrar otra finca" onPress={() => router.push("/finca/nueva")} style={s.add}>
+            <Icon name="plus" color={colors.tierraDeep} size={20} width={2.4} />
+            <Txt w="extrabold" size={15} color={colors.tierraDeep}>Agregar otra finca</Txt>
+          </Tap>
+        </Rise>
+      </View>
+    </ScrollView>
   );
 }
 
 const s = StyleSheet.create({
-  card: { marginHorizontal: 16, backgroundColor: colors.card, borderRadius: radius.lg, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: 2, borderColor: "transparent", ...shadow },
-  cardOn: { borderColor: colors.lima },
-  main: { flex: 1, flexDirection: "row", alignItems: "center", gap: 14 },
-  iconBox: { width: 52, height: 52, borderRadius: 26, backgroundColor: colors.limaSoft, alignItems: "center", justifyContent: "center" },
-  edit: { width: 40, height: 40, borderRadius: 20, backgroundColor: colors.limaSoft, alignItems: "center", justifyContent: "center" },
-  demo: { flexDirection: "row", gap: 10, alignItems: "center", backgroundColor: colors.warnSoft, marginHorizontal: 16, marginBottom: 14, padding: 12, borderRadius: radius.md },
+  main: { paddingTop: 16, paddingHorizontal: 16, gap: 12 },
+  demo: { flexDirection: "row", gap: 10, alignItems: "center", backgroundColor: colors.warnSoft, padding: 12, borderRadius: 20 },
+  card: { borderRadius: 26, padding: 16, gap: 12 },
+  cardOn: { backgroundColor: colors.selva },
+  cardOff: { backgroundColor: colors.card, ...shadow },
+  top: { flexDirection: "row", alignItems: "center", gap: 12 },
+  icon: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
+  bottom: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36 },
+  edit: { flexDirection: "row", alignItems: "center", gap: 6, height: 36, paddingHorizontal: 12, borderRadius: 18 },
+  add: { height: 56, borderRadius: 28, borderWidth: 2, borderStyle: "dashed", borderColor: "#C9C2B3", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
 });

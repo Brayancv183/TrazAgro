@@ -41,6 +41,9 @@ export function Pop({ children, style, deps = [] }: { children: ReactNode; style
   );
 }
 
+/** Pressable that animates: layout and look go on the pressable itself, so flex and % widths work. */
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 /**
  * Pressable that shrinks to 0.97 while pressed and springs back, like the mockups' `:active`.
  * Pass layout and look in `style` exactly as for a View.
@@ -51,10 +54,11 @@ export function Tap({ children, style, onPressIn, onPressOut, scaleTo = 0.97, ..
   const v = useRef(new Animated.Value(1)).current;
   const to = (toValue: number) => Animated.spring(v, { toValue, useNativeDriver: native, speed: 40, bounciness: toValue === 1 ? 6 : 0 }).start();
   return (
-    <Pressable {...props}
+    <AnimatedPressable {...props}
       onPressIn={(e: GestureResponderEvent) => { to(scaleTo); onPressIn?.(e); }}
-      onPressOut={(e: GestureResponderEvent) => { to(1); onPressOut?.(e); }}>
-      <Animated.View style={[style, { transform: [{ scale: v }] }, props.disabled ? { opacity: 0.45 } : null]}>{children}</Animated.View>
-    </Pressable>
+      onPressOut={(e: GestureResponderEvent) => { to(1); onPressOut?.(e); }}
+      style={[style, { transform: [{ scale: v }] }, props.disabled ? { opacity: 0.45 } : null]}>
+      {children}
+    </AnimatedPressable>
   );
 }

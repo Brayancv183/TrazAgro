@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useSQLiteContext } from "expo-sqlite";
-import { colors, daysBetween, EXPIRY_WARN_DAYS, money, num, radius, shadow, shortDate, todayDay, type Product, type ProductKind } from "@trazagro/shared";
+import { useRouter } from "expo-router";
+import { colors, daysBetween, EXPIRY_WARN_DAYS, money, num, plural, shadow, shortDate, todayDay, type Product, type ProductKind } from "@trazagro/shared";
 import { adjustStock, listProducts, saveProduct } from "../db/repo";
 import { useFarm, useFarmId } from "../lib/farm";
 import { useDbQuery } from "../lib/useDb";
 import { DateField, splitDay, toDay, type DayParts } from "../ui/DateField";
 import { Icon, type IconName } from "../ui/Icon";
-import { Banner, Button, Chip, Empty, Field, GreenHeader, Sheet, Txt } from "../ui/kit";
+import { Banner, Button, Chip, Empty, GreenHeader, Sheet, Txt } from "../ui/kit";
+import { Rise, Tap } from "../ui/motion";
+import { FField, HeaderAction, Segmented, StateChip } from "../ui/finca/parts";
 
 const KIND: Record<ProductKind, { label: string; icon: IconName }> = {
   vacuna: { label: "Vacunas", icon: "syringe" },
@@ -18,64 +21,101 @@ const KIND: Record<ProductKind, { label: string; icon: IconName }> = {
 
 const decimal = (t: string) => Number(t.replace(",", ".")) || 0;
 
-/** Farm stock of vaccines, drugs, feed and tools. Uses on animals are subtracted automatically. */
+/** Inventario.dc: category tabs in the header, expiry notice, one card per product with its state chip and actions. */
 export default function InventarioScreen() {
   const db = useSQLiteContext();
+  const router = useRouter();
   const farmId = useFarmId();
   const canEdit = useFarm().can("products");
   const today = todayDay();
-  const [filter, setFilter] = useState<ProductKind | "todos">("todos");
+  const [tab, setTab] = useState<ProductKind>();
   const [editing, setEditing] = useState<Partial<Product>>();
   const [buying, setBuying] = useState<Product>();
   const [discarding, setDiscarding] = useState<Product>();
   const { data, reload } = useDbQuery((d) => listProducts(d, farmId), [farmId]);
-  const products = (data ?? []).filter((p) => filter === "todos" || p.kind === filter);
+  const all = data ?? [];
+  // Opens on the first category that has something, like the mockup opens on "Vacunas".
+  const kind: ProductKind = tab ?? (Object.keys(KIND) as ProductKind[]).find((k) => all.some((p) => p.kind === k)) ?? "vacuna";
+  const products = all.filter((p) => p.kind === kind);
+  const isLow = (p: Product) => p.stock <= 0 || (!!p.expiresOn && p.expiresOn < today);
+  const low = all.filter(isLow).length;
+  const expiring = all.filter((p) => p.expiresOn && p.expiresOn >= today && daysBetween(today, p.expiresOn) <= EXPIRY_WARN_DAYS && p.stock > 0);
 
   const status = (p: Product) =>
-    p.expiresOn && p.expiresOn < today ? { text: "Vencido", bg: colors.dangerSoft, fg: colors.danger }
-    : p.stock <= 0 ? { text: "Agotado", bg: colors.dangerSoft, fg: colors.danger }
-    : p.expiresOn && daysBetween(today, p.expiresOn) <= EXPIRY_WARN_DAYS ? { text: `Vence ${shortDate(p.expiresOn, today)}`, bg: colors.warnSoft, fg: colors.warn }
-    : undefined;
+    p.expiresOn && p.expiresOn < today ? { text: "Vencido", bg: colors.dangerSoft, fg: colors.urgentText }
+    : p.stock <= 0 ? { text: "Agotado", bg: colors.dangerSoft, fg: colors.urgentText }
+    : p.expiresOn && daysBetween(today, p.expiresOn) <= EXPIRY_WARN_DAYS ? { text: `Vence ${shortDate(p.expiresOn, today)}`, bg: colors.warnSoft, fg: colors.amberText }
+    : { text: "Disponible", bg: colors.greenSoft, fg: colors.selva };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        <GreenHeader back kicker="FINCA" title="Inventario">
-          <Txt w="medium" size={15} color={colors.onDarkMuted}>Lo que aplicas a un animal se descuenta solo.</Txt>
+        <GreenHeader back waveHeight={40} title="Inventario de la finca"
+          kicker={data ? (low ? plural(low, "producto agotado o vencido", "productos agotados o vencidos") : plural(all.length, "producto", "productos")).toUpperCase() : "CARGANDO…"}
+          right={canEdit ? <HeaderAction lime icon="plus" label="Agregar" onPress={() => setEditing({ kind })} /> : undefined}>
+          <Segmented style={{ marginTop: 10 }} fontSize={12} value={kind} onChange={setTab}
+            options={(Object.keys(KIND) as ProductKind[]).map((k) => ({ id: k, label: KIND[k].label }))} />
         </GreenHeader>
-        <View style={{ paddingHorizontal: 16, gap: 12 }}>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-            <Chip label="Todos" active={filter === "todos"} onPress={() => setFilter("todos")} />
-            {(Object.keys(KIND) as ProductKind[]).map((k) => <Chip key={k} label={KIND[k].label} active={filter === k} onPress={() => setFilter(k)} />)}
-          </View>
+
+        <View style={s.main}>
+          {expiring.length ? (
+            <Rise index={0}>
+              <Tap accessibilityRole="link" onPress={() => router.push("/alertas")} style={s.expiring}>
+                <Icon name="clock" color={colors.warn} size={22} />
+                <View style={{ flex: 1, gap: 1 }}>
+                  <Txt w="extrabold" size={14} color={colors.signalText}>{`${plural(expiring.length, "producto vence", "productos vencen")} en menos de ${EXPIRY_WARN_DAYS} días`}</Txt>
+                  <Txt size={12} color={colors.signalText} numberOfLines={2}>{expiring.slice(0, 3).map((p) => `${p.name} (${shortDate(p.expiresOn!, today)})`).join(" · ")}</Txt>
+                </View>
+              </Tap>
+            </Rise>
+          ) : null}
+          <Rise index={1}>
+            <View style={s.auto}>
+              <Icon name="check" color={colors.selva} size={18} />
+              <Txt size={13} color={colors.selva} style={{ flex: 1, lineHeight: 18 }}>Lo que aplicas a un animal se <Txt w="bold" size={13} color={colors.selva}>descuenta solo</Txt> del inventario.</Txt>
+            </View>
+          </Rise>
           {data && !products.length ? <Empty title="Nada por aquí" text="Agrega lo que tienes en la bodega para saber cuándo comprar." /> : null}
-          {products.map((p) => {
+          {products.map((p, i) => {
             const st = status(p);
+            const bad = isLow(p);
             return (
-              <View key={p.id} style={s.card}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                  <View style={s.icon}><Icon name={KIND[p.kind].icon} color={colors.selva} size={20} /></View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Txt w="bold" size={16}>{p.name}</Txt>
-                    <Txt size={13} color={colors.textMuted}>
-                      {[p.withdrawalMilkDays || p.withdrawalMeatDays ? `Retiro: leche ${p.withdrawalMilkDays} d · carne ${p.withdrawalMeatDays} d` : "Sin retiro", p.expiresOn ? `vence ${shortDate(p.expiresOn, today)}` : ""].filter(Boolean).join(" · ")}
-                    </Txt>
+              <Rise key={p.id} index={i + 2}>
+                <View style={s.card}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                    <View style={[s.icon, { backgroundColor: bad ? colors.dangerSoft : colors.tierraSoft }]}><Icon name={KIND[p.kind].icon} color={bad ? colors.danger : colors.tierraDeep} size={20} /></View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Txt w="extrabold" size={15}>{p.name}</Txt>
+                      <Txt size={12} color={colors.textMuted}>
+                        {[p.withdrawalMilkDays || p.withdrawalMeatDays ? `Días de espera: leche ${p.withdrawalMilkDays} · carne ${p.withdrawalMeatDays}` : p.kind === "vacuna" || p.kind === "medicina" ? "Sin días de espera" : "", p.expiresOn ? `vence ${shortDate(p.expiresOn, today)}` : ""].filter(Boolean).join(" · ") || KIND[p.kind].label}
+                      </Txt>
+                    </View>
+                    <View style={{ alignItems: "flex-end" }}>
+                      <Txt w="extrabold" size={18} color={p.stock <= 0 ? colors.danger : colors.text}>{num(p.stock)}</Txt>
+                      <Txt w="bold" size={11} color={colors.textMuted}>{p.unit}</Txt>
+                    </View>
                   </View>
-                  <View style={{ alignItems: "flex-end" }}>
-                    <Txt w="extrabold" size={20} color={p.stock <= 0 ? colors.danger : colors.text}>{num(p.stock)}</Txt>
-                    <Txt size={12} color={colors.textMuted}>{p.unit}</Txt>
+                  <View style={s.row2}>
+                    <StateChip label={st.text} bg={st.bg} fg={st.fg} radius={8} />
+                    <View style={{ flex: 1 }} />
+                    {canEdit ? (
+                      <>
+                        <Tap accessibilityRole="button" accessibilityLabel={`Comprar ${p.name}`} hitSlop={6} onPress={() => setBuying(p)} style={[s.small, { backgroundColor: colors.selva }]}>
+                          <Txt w="bold" size={12} color={colors.onDark}>+ Compré</Txt>
+                        </Tap>
+                        <Tap accessibilityRole="button" accessibilityLabel={`Descartar ${p.name}`} hitSlop={6} onPress={() => setDiscarding(p)} style={s.small}>
+                          <Txt w="bold" size={12}>− Descartar</Txt>
+                        </Tap>
+                        <Tap accessibilityRole="button" accessibilityLabel={`Editar ${p.name}`} hitSlop={6} onPress={() => setEditing(p)} style={s.small}>
+                          <Txt w="bold" size={12}>Editar</Txt>
+                        </Tap>
+                      </>
+                    ) : null}
                   </View>
                 </View>
-                {st ? <View style={[s.status, { backgroundColor: st.bg }]}><Txt w="bold" size={12} color={st.fg}>{st.text}</Txt></View> : null}
-                {canEdit ? <View style={{ flexDirection: "row", gap: 8 }}>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Comprar ${p.name}`} onPress={() => setBuying(p)} style={s.action}><Txt w="bold" size={14} color={colors.selva}>+ Compré</Txt></Pressable>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Descartar ${p.name}`} onPress={() => setDiscarding(p)} style={s.action}><Txt w="bold" size={14} color={colors.selva}>− Descartar</Txt></Pressable>
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${p.name}`} onPress={() => setEditing(p)} style={s.action}><Txt w="bold" size={14} color={colors.selva}>Editar</Txt></Pressable>
-                </View> : null}
-              </View>
+              </Rise>
             );
           })}
-          {canEdit ? <Button icon="plus" label="Agregar producto" onPress={() => setEditing({ kind: filter === "todos" ? "medicina" : filter })} /> : null}
         </View>
       </ScrollView>
 
@@ -85,6 +125,7 @@ export default function InventarioScreen() {
             <ProductForm product={editing} onSave={async (input, stock, price) => {
               await saveProduct(db, { ...input, id: editing.id, farmId }, stock, price, today);
               setEditing(undefined);
+              setTab(input.kind);
               reload();
             }} />
           </ScrollView>
@@ -143,23 +184,23 @@ function ProductForm({ product, onSave }: { product: Partial<Product>; onSave: (
 
   return (
     <View style={{ gap: 12, paddingBottom: 12 }}>
-      <Field label="Nombre" value={name} onChangeText={(t) => { setError(undefined); setName(t); }} placeholder="Ej: Ivermectina 1 %" />
+      <FField label="Nombre" value={name} onChangeText={(t) => { setError(undefined); setName(t); }} placeholder="Ej: Ivermectina 1 %" />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         {(Object.keys(KIND) as ProductKind[]).map((k) => <Chip key={k} label={KIND[k].label} active={kind === k} onPress={() => pickKind(k)} />)}
       </View>
-      <Field label="Unidad" value={unit} onChangeText={(t) => { setError(undefined); setUnitTouched(true); setUnit(t); }} placeholder="ml, dosis, bulto, kg" />
+      <FField label="Unidad" value={unit} onChangeText={(t) => { setError(undefined); setUnitTouched(true); setUnit(t); }} placeholder="ml, dosis, bulto, kg" />
       {kind === "vacuna" || kind === "medicina" ? (
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1 }}><Field label="Retiro leche (días)" value={milk} onChangeText={setMilk} keyboardType="number-pad" /></View>
-          <View style={{ flex: 1 }}><Field label="Retiro carne (días)" value={meat} onChangeText={setMeat} keyboardType="number-pad" /></View>
+          <View style={{ flex: 1 }}><FField label="Retiro leche (días)" value={milk} onChangeText={setMilk} keyboardType="number-pad" /></View>
+          <View style={{ flex: 1 }}><FField label="Retiro carne (días)" value={meat} onChangeText={setMeat} keyboardType="number-pad" /></View>
         </View>
       ) : null}
       <Chip label={hasExpiry ? "Tiene fecha de vencimiento ✓" : "Agregar fecha de vencimiento"} active={hasExpiry} onPress={() => setHasExpiry(!hasExpiry)} />
       {hasExpiry ? <DateField label="Vence el" value={expires} onChange={(v) => { setError(undefined); setExpires(v); }} /> : null}
       {product.id ? null : (
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1 }}><Field label="Cantidad que tienes" value={stock} onChangeText={setStock} keyboardType="decimal-pad" placeholder="Ej: 100" /></View>
-          <View style={{ flex: 1 }}><Field label="Lo que costó (opcional)" value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="$" /></View>
+          <View style={{ flex: 1 }}><FField label="Cantidad que tienes" value={stock} onChangeText={setStock} keyboardType="decimal-pad" placeholder="Ej: 100" /></View>
+          <View style={{ flex: 1 }}><FField label="Lo que costó (opcional)" value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="$" /></View>
         </View>
       )}
       {error ? <Banner icon="note" tone="danger" title={error} /> : null}
@@ -175,8 +216,8 @@ function BuyForm({ product, onSave }: { product: Product; onSave: (qty: number, 
   const amount = Number(price.replace(/\D/g, "")) || 0;
   return (
     <View style={{ gap: 12 }}>
-      <Field label={`Cantidad (${product.unit})`} value={qty} onChangeText={setQty} keyboardType="decimal-pad" placeholder="Ej: 50" />
-      <Field label="Lo que pagaste (opcional)" value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="$" />
+      <FField label={`Cantidad (${product.unit})`} value={qty} onChangeText={setQty} keyboardType="decimal-pad" placeholder="Ej: 50" />
+      <FField label="Lo que pagaste (opcional)" value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="$" />
       {product.expiresOn ? <DateField label="Vencimiento del lote nuevo" value={expires} onChange={setExpires} /> : null}
       {amount ? <Txt size={13} color={colors.textMuted}>Se anota {money(amount)} como gasto en Costos.</Txt> : null}
       <Button label="Sumar al inventario" disabled={!(decimal(qty) > 0)} onPress={() => onSave(decimal(qty), amount, product.expiresOn ? toDay(expires) : undefined)} />
@@ -190,15 +231,18 @@ function DiscardForm({ product, onSave }: { product: Product; onSave: (qty: numb
   return (
     <View style={{ gap: 12 }}>
       <Txt size={14} color={colors.textMuted}>Para lo que se dañó, venció o se perdió. Lo que se aplica a un animal se descuenta solo.</Txt>
-      <Field label={`Cantidad (${product.unit})`} value={qty} onChangeText={setQty} keyboardType="decimal-pad" placeholder={`Hay ${num(product.stock)}`} />
+      <FField label={`Cantidad (${product.unit})`} value={qty} onChangeText={setQty} keyboardType="decimal-pad" placeholder={`Hay ${num(product.stock)}`} />
       <Button kind="danger" label="Descartar" disabled={!(n > 0 && n <= product.stock)} onPress={() => onSave(n)} />
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: radius.md, padding: 14, gap: 10, ...shadow },
-  icon: { width: 42, height: 42, borderRadius: 21, backgroundColor: colors.limaSoft, alignItems: "center", justifyContent: "center" },
-  status: { alignSelf: "flex-start", borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
-  action: { flex: 1, minHeight: 44, borderRadius: radius.pill, backgroundColor: colors.limaSoft, alignItems: "center", justifyContent: "center" },
+  main: { paddingTop: 14, paddingHorizontal: 16, gap: 10 },
+  expiring: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 20, backgroundColor: colors.warnSoft },
+  auto: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 18, backgroundColor: colors.tint },
+  card: { backgroundColor: colors.card, borderRadius: 22, padding: 14, gap: 10, ...shadow },
+  icon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  row2: { flexDirection: "row", alignItems: "center", gap: 6 },
+  small: { height: 32, paddingHorizontal: 11, borderRadius: 16, backgroundColor: colors.sand, alignItems: "center", justifyContent: "center" },
 });

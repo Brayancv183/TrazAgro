@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSQLiteContext } from "expo-sqlite";
-import { animalLabel, todayDay, type Animal, type AnimalSex, type Lot } from "@trazagro/shared";
+import { animalLabel, colors, todayDay, type Animal, type AnimalSex, type Lot } from "@trazagro/shared";
 import { DuplicateTagError, getAnimal, listLots, updateAnimal } from "../../db/repo";
 import { RequireWrite } from "../../ui/NoPermission";
 import { DateField, splitDay, toDay, type DayParts } from "../../ui/DateField";
-import { Banner, Button, Chip, Field, GreenHeader, Txt } from "../../ui/kit";
+import { Txt } from "../../ui/kit";
+import { Rise } from "../../ui/motion";
+import { BarGhost, BarMain, BottomBar, ChoiceCard, Note, SelectField, WizardHeader, WizField } from "../../ui/animales/parts";
 
-/** Corrects an animal's data: ear tag, RFID, name, sex, breed, birth date, lot and sire. */
+/** Corrects an animal's data: ear tag, RFID, name, sex, breed, birth date, lot and sire. Same look as the new-animal wizard. */
 function EditarAnimalScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
@@ -41,15 +43,16 @@ function EditarAnimalScreen() {
     });
   }, [db, id]);
 
+  const close = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/animal/[id]", params: { id } }));
+  const day = toDay(birth);
+
   async function save() {
     if (!animal) return;
     if (tag.trim() && !/^\d{3,10}$/.test(tag.trim())) return setError("El arete lleva solo números (de 3 a 10).");
-    const day = toDay(birth);
     if (!day || day > todayDay()) return setError("Revisa la fecha de nacimiento.");
     try {
       await updateAnimal(db, animal, { tagVisual: tag.trim(), rfid: rfid.trim(), name: name.trim(), sex, breed: breed.trim(), birthDate: day, lotId, sireNote: sire.trim() });
-      if (router.canGoBack()) router.back();
-      else router.replace({ pathname: "/animal/[id]", params: { id: animal.id } });
+      close();
     } catch (e) {
       setError(e instanceof DuplicateTagError ? `Ese arete o chip ya lo tiene ${animalLabel(e.existing)}.` : "No se pudo guardar. Intenta de nuevo.");
     }
@@ -57,37 +60,42 @@ function EditarAnimalScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-        <GreenHeader back kicker="EDITAR DATOS" title={animal ? animalLabel(animal) : "Animal"} />
-        <View style={{ paddingHorizontal: 16, gap: 14 }}>
-          <Field label="Número del arete" value={tag} onChangeText={(t) => { setError(undefined); setTag(t.replace(/\D/g, "")); }} keyboardType="number-pad" placeholder="Ej: 00123" />
-          <Field label="Chip RFID (opcional)" value={rfid} onChangeText={(t) => { setError(undefined); setRfid(t); }} placeholder="Ej: 985 2024 00123" />
-          <Field label="Nombre (opcional)" value={name} onChangeText={setName} placeholder="Ej: Lola" autoCapitalize="words" />
-          <View style={{ gap: 6 }}>
-            <Txt w="semibold" size={14}>Sexo</Txt>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Chip label="Hembra" active={sex === "hembra"} onPress={() => setSex("hembra")} />
-              <Chip label="Macho" active={sex === "macho"} onPress={() => setSex("macho")} />
-            </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} keyboardShouldPersistTaps="handled">
+        <WizardHeader kicker="EDITAR DATOS" icon="back" closeLabel="Volver" onClose={close} />
+        <Rise style={{ paddingHorizontal: 16, gap: 12 }}>
+          <Txt w="extrabold" size={28} style={{ letterSpacing: -0.56 }}>{animal ? animalLabel(animal) : "Animal"}</Txt>
+          {error ? <Note icon="alert" tone="danger">{error}</Note> : null}
+          <View style={s.two}>
+            <View style={{ flex: 1 }}><WizField label="Número del arete" value={tag} onChangeText={(t) => { setError(undefined); setTag(t.replace(/\D/g, "")); }} keyboardType="number-pad" placeholder="Ej: 00123" /></View>
+            <View style={{ flex: 1 }}><WizField label="Nombre (opcional)" value={name} onChangeText={setName} placeholder="Ej: Lola" autoCapitalize="words" /></View>
           </View>
-          <Field label="Raza" value={breed} onChangeText={setBreed} placeholder="Ej: Normando" autoCapitalize="words" />
+          <WizField label="Chip RFID (opcional)" value={rfid} onChangeText={(t) => { setError(undefined); setRfid(t); }} placeholder="Ej: 985 2024 00123" />
+          <View role="group" accessibilityLabel="Sexo" style={s.two}>
+            <View style={{ flex: 1 }}><ChoiceCard label="Hembra" on={sex === "hembra"} onPress={() => setSex("hembra")} /></View>
+            <View style={{ flex: 1 }}><ChoiceCard label="Macho" on={sex === "macho"} onPress={() => setSex("macho")} /></View>
+          </View>
+          <WizField label="Raza" value={breed} onChangeText={setBreed} placeholder="Ej: Normando" autoCapitalize="words" />
           <DateField label="Fecha de nacimiento" value={birth} onChange={(v) => { setError(undefined); setBirth(v); }} />
           {lots.length ? (
-            <View style={{ gap: 6 }}>
-              <Txt w="semibold" size={14}>Lote</Txt>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {lots.map((l) => <Chip key={l.id} label={l.name.split(" · ")[0]!} active={lotId === l.id} onPress={() => setLotId(l.id)} />)}
-              </View>
-            </View>
+            <SelectField label="Lote" value={lotId ?? ""} sheetTitle="¿En qué lote está?"
+              options={[...(lotId ? [] : [{ id: "", label: "Sin lote" }]), ...lots.map((l) => ({ id: l.id, label: l.name }))]}
+              onChange={(v) => setLotId(v || undefined)} />
           ) : null}
-          <Field label="Padre o pajilla (opcional)" value={sire} onChangeText={setSire} placeholder="Ej: Toro Capitán o pajilla 7HO1234" />
-          {error ? <Banner icon="note" tone="danger" title={error} /> : null}
-          <Button label="Guardar cambios" onPress={save} disabled={!animal} />
-        </View>
+          <WizField label="Padre o pajilla (opcional)" value={sire} onChangeText={setSire} placeholder="Ej: Toro Capitán o pajilla 7HO1234" />
+          <Txt size={14} color={colors.textMuted} style={{ textAlign: "center" }}>Se guarda en el teléfono y se sube cuando haya señal.</Txt>
+        </Rise>
       </ScrollView>
+      <BottomBar>
+        <BarGhost label="Cancelar" onPress={close} />
+        <BarMain label="Guardar cambios" onPress={save} />
+      </BottomBar>
     </KeyboardAvoidingView>
   );
 }
+
+const s = StyleSheet.create({
+  two: { flexDirection: "row", gap: 10 },
+});
 
 export default function Screen() {
   return <RequireWrite table="animals"><EditarAnimalScreen /></RequireWrite>;

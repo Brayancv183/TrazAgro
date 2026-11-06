@@ -173,7 +173,7 @@ cd apps/mobile && npx expo-doctor
 
 ## Qué hace hoy
 
-La app tiene barra inferior con **Inicio, Animales, Escanear, Alertas y Módulos**, y trabaja sobre la finca elegida (se cambia tocando su nombre en Inicio).
+El diseño sigue los mockups de TrazAgro (encabezado verde con la onda de pasto, aretes con su forma, hojas inferiores y transiciones tipo iPhone: deslizar para volver, contenido que entra subiendo, botones que se encogen al tocar). La app tiene barra inferior con **Inicio, Animales, Escanear, Alertas y Módulos**, y trabaja sobre la finca elegida (se cambia tocando su nombre en Inicio).
 
 | Módulo | Qué hace |
 |---|---|
@@ -197,6 +197,8 @@ La app tiene barra inferior con **Inicio, Animales, Escanear, Alertas y Módulos
 | VetConecta | Chat con asistente veterinario (Claude) — necesita `ANTHROPIC_API_KEY` en el servidor |
 | Tienda, Plan, Mapa | Catálogo de aretes/GPS con pedido por mensaje, planes y aviso del kit GPS y drones |
 | Ajustes y Bienvenida | Ocultar finca de prueba, autorización de datos (Ley 1581) |
+| Fotos y QR | Fotos de cada animal en su ficha (cámara o galería; se guardan en el celular) y código QR imprimible por animal |
+| Importar animales | En Ajustes: plantilla CSV/Excel, vista previa de filas buenas y con problemas, y guardado en la finca actual |
 
 ## Qué falta
 
