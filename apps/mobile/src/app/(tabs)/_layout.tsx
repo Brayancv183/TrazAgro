@@ -15,7 +15,7 @@ export default function TabsLayout() {
   }, [db, router]);
 
   return (
-    <Tabs tabBar={() => <TabBar />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: colors.crema } }}>
+    <Tabs tabBar={() => <TabBar />} screenOptions={{ headerShown: false, animation: "shift", sceneStyle: { backgroundColor: colors.crema } }}>
       <Tabs.Screen name="index" />
       <Tabs.Screen name="animales" />
       <Tabs.Screen name="escanear" />

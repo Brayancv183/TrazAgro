@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import { seedDemo, seedDemoV5 } from "./seed";
 
-const DATABASE_VERSION = 6;
+const DATABASE_VERSION = 7;
 
 /** Runs before the app renders (SQLiteProvider onInit). Each block upgrades one version. */
 export async function migrate(db: SQLiteDatabase) {
@@ -153,6 +153,23 @@ UPDATE animals SET created_at = strftime('%Y-%m-%dT12:00:00.000Z', 'now', '-400 
 UPDATE farms SET created_at = strftime('%Y-%m-%dT12:00:00.000Z', 'now', '-400 days') WHERE is_demo = 1;
 `);
     version = 6;
+  }
+
+  if (version === 6) {
+    // Photos taken on the farm (animal or event). Local only for now: the files stay on this phone.
+    await db.execAsync(`
+CREATE TABLE IF NOT EXISTS photos (
+  id TEXT PRIMARY KEY NOT NULL,
+  farm_id TEXT NOT NULL,
+  animal_id TEXT,
+  event_id TEXT,
+  uri TEXT NOT NULL,
+  note TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS photos_animal ON photos(animal_id, created_at);
+`);
+    version = 7;
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

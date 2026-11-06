@@ -33,7 +33,10 @@ export default function RootLayout() {
     <SQLiteProvider databaseName="trazagro.db" onInit={migrate} onError={setDbError}>
       <StatusBar style="light" />
       <FarmProvider>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.crema } }} />
+        {/* iPhone-like push: slide from the right, full-screen swipe back on both platforms. */}
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.crema }, animation: "ios_from_right", gestureEnabled: true, fullScreenGestureEnabled: true, animationMatchesGesture: true }}>
+          <Stack.Screen name="bienvenida" options={{ animation: "fade", gestureEnabled: false }} />
+        </Stack>
       </FarmProvider>
     </SQLiteProvider>
   );

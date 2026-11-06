@@ -41,7 +41,16 @@
       [
         "expo-build-properties",
         {
-          "android": { "usesCleartextTraffic": true }
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TrazAgro usa tus fotos para documentar a tus animales.",
+          "cameraPermission": "TrazAgro usa la cámara para tomar fotos de tus animales y escanear códigos."
         }
       ]
     ]
