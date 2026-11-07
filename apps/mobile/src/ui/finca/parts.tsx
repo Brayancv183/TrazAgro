@@ -1,5 +1,5 @@
 // Small pieces shared by the farm screens (Módulos, Fincas, Lotes, Inventario, Costos, Métricas, Reportes, ICA).
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Animated, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts, shadow } from "@trazagro/shared";
@@ -24,7 +24,7 @@ export function Segmented<T extends string>({ options, value, onChange, variant 
 }) {
   const [w, setW] = useState(0);
   const idx = Math.max(0, options.findIndex((o) => o.id === value));
-  const v = useRef(new Animated.Value(idx)).current;
+  const v = useState(() => new Animated.Value(idx))[0];
   useEffect(() => { Animated.timing(v, { toValue: idx, duration: 380, easing: EASE, useNativeDriver: true }).start(); }, [idx, v]);
   const pad = variant === "tint" ? 3 : 4, gap = variant === "tint" ? 2 : 4;
   const seg = w ? (w - pad * 2 - gap * (options.length - 1)) / options.length : 0;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Animated, Dimensions, Modal, Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -209,11 +209,11 @@ export function MenuRow({ icon, title, detail, onPress, tone = colors.selva, bad
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
   const insets = useSafeAreaInsets();
   const [mounted, setMounted] = useState(open);
-  const v = useRef(new Animated.Value(0)).current;
+  const v = useState(() => new Animated.Value(0))[0];
   const travel = Dimensions.get("window").height;
+  if (open && !mounted) setMounted(true);
   useEffect(() => {
     if (open) {
-      setMounted(true);
       Animated.timing(v, { toValue: 1, duration: 420, easing: EASE, useNativeDriver: true }).start();
     } else if (mounted) {
       Animated.timing(v, { toValue: 0, duration: 260, easing: EASE, useNativeDriver: true }).start(() => setMounted(false));

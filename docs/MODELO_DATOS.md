@@ -24,7 +24,8 @@ Los tipos están en `packages/shared/src/domain.ts` y las reglas de negocio en `
 2. **Los eventos solo se agregan.** Vacunas, tratamientos, pesajes, partos y bajas nunca se editan: una corrección es un evento nuevo que anula al anterior. Como dos personas sin señal solo agregan, no hay conflictos al sincronizar.
 3. **Datos del animal (nombre, lote, raza): gana el último cambio.** Cada campo lleva su `updated_at`. Al sincronizar se queda el más reciente, y el cambio que pierde queda en el historial.
 4. **Bandeja de salida.** Cada cambio local también se escribe en `sync_outbox` dentro de la misma transacción. El sincronizador sube la bandeja en orden y borra lo que el servidor confirma. Si se cae la señal a mitad de camino, se reintenta sin duplicar, porque el servidor ignora IDs que ya tiene.
-5. **Inventario.** El stock no se edita directamente: se calcula a partir de compras y aplicaciones, que son eventos. Así dos aplicaciones simultáneas sin señal descuentan bien.
+5. **Sin eco.** Cada celular envía un identificador de instalación (`x-device-id`, guardado en `sync_state`); el servidor anota qué celular mandó cada versión y no se la devuelve a ese mismo celular al bajar cambios. Al cerrar sesión se borra `sync_state`, así que al volver a entrar el celular tiene un identificador nuevo y baja todo otra vez.
+6. **Inventario.** El stock no se edita directamente: se calcula a partir de compras y aplicaciones, que son eventos. Así dos aplicaciones simultáneas sin señal descuentan bien.
 
 ## Reglas de negocio ya programadas
 
@@ -61,7 +62,9 @@ Mientras no hay datos reales, la app arranca con una finca de ejemplo ("Finca La
 
 Quien sube una finca nueva queda como su **dueño**. Nadie puede leer ni escribir en fincas de las que no es miembro. Al subir cambios el servidor revisa el rol: el técnico escribe animales, eventos, inventario, leche y lotes; el vaquero animales, eventos y leche; "solo ver" no escribe. La plata (`movements`) y los datos de la finca solo los cambian dueño y administrador.
 
-**Pendiente antes de producción:** contratar un proveedor de SMS (el servidor se niega a arrancar en producción sin él), limitar pedidos de código por IP y desplegar en Railway + Neon.
+El login tiene límite por IP: 10 pedidos de código y 30 verificaciones cada 15 minutos en producción (`TRUST_PROXY=1` detrás de un proxy).
+
+**Pendiente antes de producción:** contratar un proveedor de SMS (el servidor se niega a arrancar en producción sin él) y desplegar en Railway + Neon.
 
 ### Correr en desarrollo
 

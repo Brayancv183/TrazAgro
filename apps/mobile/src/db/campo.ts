@@ -20,7 +20,7 @@ export interface WaitItem {
   pct: number;
 }
 
-const APPLIED: ReadonlyArray<AnimalEvent["type"]> = ["vacuna", "tratamiento", "desparasitacion"];
+const APPLIED: readonly AnimalEvent["type"][] = ["vacuna", "tratamiento", "desparasitacion"];
 
 /**
  * Active animals that still can't sell milk or meat, with the product and day that caused it and how far

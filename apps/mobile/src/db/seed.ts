@@ -23,7 +23,7 @@ export async function seedDemo(db: SQLiteDatabase) {
     ["demo-l4", "demo-f2", "Lote único", "Ceba"],
   ] as const;
   // id, farm, lot, tag, rfid, name, sex, breed, birth, origin, mother
-  const animals: ReadonlyArray<readonly [string, string, string, string, string | null, string, "hembra" | "macho", string, string, "nacido" | "comprado", string | null]> = [
+  const animals: readonly (readonly [string, string, string, string, string | null, string, "hembra" | "macho", string, string, "nacido" | "comprado", string | null])[] = [
     ["demo-a-rosa", "demo-f1", "demo-l1", "00098", "985 2018 00098", "Rosa", "hembra", "Holstein", "2018-03-10", "comprado", null],
     ["demo-a-miel", "demo-f1", "demo-l1", "00123", "985 2024 00123", "Miel", "hembra", "Cruza Holstein", "2023-04-12", "nacido", "demo-a-rosa"],
     ["demo-a-capitan", "demo-f1", "demo-l2", "00124", "985 2024 00124", "Capitán", "macho", "Brahman", "2021-11-03", "comprado", null],
@@ -48,7 +48,7 @@ export async function seedDemo(db: SQLiteDatabase) {
     ["demo-p-sal", "demo-f1", "Sal mineralizada", "insumo", "bulto", 6, 0, 0, null],
   ] as const;
   // id, animal, type, date, product, dose, weight, method, calf
-  const events: ReadonlyArray<readonly [string, string, string, string, string | null, string | null, number | null, string | null, string | null]> = [
+  const events: readonly (readonly [string, string, string, string, string | null, string | null, number | null, string | null, string | null])[] = [
     ["demo-e1", "demo-a-rosa", "parto", "2023-04-12", null, null, null, null, "demo-a-miel"],
     ["demo-e2", "demo-a-miel", "parto", "2025-05-02", null, null, null, null, "demo-a-luz"],
     ["demo-e3", "demo-a-miel", "pesaje", ago(62), null, null, 395, "bascula", null],

@@ -9,13 +9,13 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(path: string, init: RequestInit & { token?: string } = {}): Promise<T> {
+async function call<T>(path: string, init: RequestInit & { token?: string; device?: string } = {}): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}${path}`, {
       ...init,
       // Fastify refuses an empty body declared as JSON, so the header only goes with a body.
-      headers: { ...(init.body ? { "content-type": "application/json" } : {}), ...(init.token ? { authorization: `Bearer ${init.token}` } : {}) },
+      headers: { ...(init.body ? { "content-type": "application/json" } : {}), ...(init.token ? { authorization: `Bearer ${init.token}` } : {}), ...(init.device ? { "x-device-id": init.device } : {}) },
     });
   } catch {
     throw new ApiError(0, "Sin conexión con el servidor");
@@ -28,8 +28,8 @@ async function call<T>(path: string, init: RequestInit & { token?: string } = {}
 export const api = {
   requestCode: (phone: string) => call<OtpRequestResponse>("/auth/otp/request", { method: "POST", body: JSON.stringify({ phone }) }),
   verifyCode: (phone: string, code: string) => call<OtpVerifyResponse>("/auth/otp/verify", { method: "POST", body: JSON.stringify({ phone, code }) }),
-  push: (token: string, changes: SyncChange[]) => call<PushResponse>("/sync/push", { method: "POST", token, body: JSON.stringify({ changes }) }),
-  pull: (token: string, since: number) => call<PullResponse>(`/sync/pull?since=${since}`, { token }),
+  push: (token: string, changes: SyncChange[], device?: string) => call<PushResponse>("/sync/push", { method: "POST", token, device, body: JSON.stringify({ changes }) }),
+  pull: (token: string, since: number, device?: string) => call<PullResponse>(`/sync/pull?since=${since}`, { token, device }),
   myFarms: (token: string) => call<MyFarm[]>("/me/farms", { token }),
   members: (token: string, farmId: string) => call<Member[]>(`/farms/${encodeURIComponent(farmId)}/members`, { token }),
   invite: (token: string, farmId: string, phone: string, role: Role, fullName?: string) =>

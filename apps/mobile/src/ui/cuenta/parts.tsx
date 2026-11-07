@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Animated, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import Svg, { Circle, Ellipse, Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -32,7 +32,7 @@ export function Segmented<T extends string>({ options, value, onChange, track = 
 }) {
   const [w, setW] = useState(0);
   const idx = Math.max(0, options.findIndex((o) => o.id === value));
-  const x = useRef(new Animated.Value(idx)).current;
+  const x = useState(() => new Animated.Value(idx))[0];
   useEffect(() => { Animated.timing(x, { toValue: idx, duration: 380, easing: EASE, useNativeDriver: true }).start(); }, [idx, x]);
   const cell = options.length ? (w - 8 - (options.length - 1) * 4) / options.length : 0;
   return (
@@ -51,7 +51,7 @@ export function Segmented<T extends string>({ options, value, onChange, track = 
 
 /** iOS-like switch from the mockups: 52×32 track, white 24 px knob sliding 20 px. */
 export function Switch({ on, onChange, label, disabled }: { on: boolean; onChange?: (v: boolean) => void; label: string; disabled?: boolean }) {
-  const v = useRef(new Animated.Value(on ? 1 : 0)).current;
+  const v = useState(() => new Animated.Value(on ? 1 : 0))[0];
   useEffect(() => { Animated.timing(v, { toValue: on ? 1 : 0, duration: 280, easing: EASE, useNativeDriver: false }).start(); }, [on, v]);
   const bg = v.interpolate({ inputRange: [0, 1], outputRange: ["#D5D0C4", colors.selva] });
   return (

@@ -20,7 +20,7 @@ export async function farmRoles(db: Db, userId: string): Promise<Map<string, Rol
 }
 
 /** Applies one change. Returns a rejection reason, or undefined when stored or already present. */
-async function apply(db: Db, userId: string, mine: Map<string, Role>, c: SyncChange): Promise<string | undefined> {
+async function apply(db: Db, userId: string, mine: Map<string, Role>, c: SyncChange, origin: string | null): Promise<string | undefined> {
   if (c.payload.id !== c.id) return "El id no coincide con el registro";
   const farmId = c.table === "farms" ? c.id : String(c.payload.farmId ?? "");
   if (!farmId) return "Falta farmId";
@@ -41,11 +41,17 @@ async function apply(db: Db, userId: string, mine: Map<string, Role>, c: SyncCha
 
   if (existing && (APPEND_ONLY.has(c.table) || !isNewer(c.payload, existing.payload))) return undefined;
   await db.query(
-    `INSERT INTO records (table_name, id, farm_id, payload) VALUES ($1, $2, $3, $4)
-     ON CONFLICT (table_name, id) DO UPDATE SET payload = EXCLUDED.payload, seq = nextval('change_seq'), received_at = now()`,
-    [c.table, c.id, farmId, JSON.stringify(c.payload)],
+    `INSERT INTO records (table_name, id, farm_id, payload, origin) VALUES ($1, $2, $3, $4, $5)
+     ON CONFLICT (table_name, id) DO UPDATE SET payload = EXCLUDED.payload, origin = EXCLUDED.origin, seq = nextval('change_seq'), received_at = now()`,
+    [c.table, c.id, farmId, JSON.stringify(c.payload), origin],
   );
   return undefined;
+}
+
+/** The phone's install id (header x-device-id), used to avoid sending a phone its own changes back. */
+function deviceOf(headers: Record<string, unknown>): string | null {
+  const v = headers["x-device-id"];
+  return typeof v === "string" && /^[A-Za-z0-9-]{8,64}$/.test(v) ? v : null;
 }
 
 export function syncRoutes(app: FastifyInstance, db: Db) {
@@ -59,7 +65,7 @@ export function syncRoutes(app: FastifyInstance, db: Db) {
       // Farms first so their lots, animals and events in the same batch are allowed.
       const ordered = [...body.data.changes].sort((a, b) => SYNC_TABLES.indexOf(a.table) - SYNC_TABLES.indexOf(b.table));
       for (const c of ordered) {
-        const reason = await apply(t, userId, mine, c as SyncChange);
+        const reason = await apply(t, userId, mine, c as SyncChange, deviceOf(req.headers));
         if (reason) res.rejected.push({ id: c.id, reason });
         else res.accepted.push(c.id);
       }
@@ -75,15 +81,17 @@ export function syncRoutes(app: FastifyInstance, db: Db) {
     if (!mine.length) return { changes: [], cursor: q.data.since, more: false } satisfies PullResponse;
     // Roles that "no ven la plata" never receive the farm's books.
     const noMoney = mine.filter((f) => !canSeeMoney(roles.get(f)!));
-    const rows = await db.query<{ table_name: SyncChange["table"]; id: string; payload: Record<string, unknown>; seq: string }>(
-      `SELECT table_name, id, payload, seq FROM records
+    const rows = await db.query<{ table_name: SyncChange["table"]; id: string; payload: Record<string, unknown>; seq: string; origin: string | null }>(
+      `SELECT table_name, id, payload, seq, origin FROM records
        WHERE farm_id = ANY($1) AND seq > $2 AND NOT (table_name = 'movements' AND farm_id = ANY($4))
        ORDER BY seq LIMIT $3`,
       [mine, q.data.since, PAGE + 1, noMoney],
     );
     const page = rows.slice(0, PAGE);
+    // The cursor still moves past the phone's own changes, they just aren't sent again.
+    const device = deviceOf(req.headers);
     const res: PullResponse = {
-      changes: page.map((r) => ({ table: r.table_name, id: r.id, payload: r.payload })),
+      changes: page.filter((r) => !device || r.origin !== device).map((r) => ({ table: r.table_name, id: r.id, payload: r.payload })),
       cursor: page.length ? Number(page[page.length - 1]!.seq) : q.data.since,
       more: rows.length > PAGE,
     };

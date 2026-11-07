@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import { APPEND_ONLY, SYNC_TABLES, type SyncChange, type SyncTable } from "@trazagro/shared";
+import { randomUUID } from "expo-crypto";
 import { api } from "../lib/api";
 
 /** Local columns per synced table. Payload keys are camelCase versions of these. */
@@ -53,7 +54,20 @@ export function runSync(db: SQLiteDatabase, token: string): Promise<SyncResult> 
   return running;
 }
 
+/**
+ * This install's id, sent with every sync so the server doesn't return the phone's own changes. It lives in
+ * sync_state, which sign-out clears: after signing in again the phone gets a new id and re-downloads everything.
+ */
+async function deviceId(db: SQLiteDatabase): Promise<string> {
+  const saved = await getState(db, "device");
+  if (saved) return saved;
+  const id = randomUUID();
+  await setState(db, "device", id);
+  return id;
+}
+
 async function doSync(db: SQLiteDatabase, token: string): Promise<SyncResult> {
+  const device = await deviceId(db);
   const result: SyncResult = { pushed: 0, pulled: 0, rejected: [] };
 
   // 1. Push: newest payload per record, in outbox order. Rejected rows stay in the outbox (shown to the
@@ -70,7 +84,7 @@ async function doSync(db: SQLiteDatabase, token: string): Promise<SyncResult> {
       if (!SYNC_TABLES.includes(r.table_name as SyncTable)) continue;
       latest.set(`${r.table_name}:${r.record_id}`, { table: r.table_name as SyncTable, id: r.record_id, payload: JSON.parse(r.payload) });
     }
-    const res = await api.push(token, [...latest.values()]);
+    const res = await api.push(token, [...latest.values()], device);
     const maxSeq = rows[rows.length - 1]!.seq;
     const accepted = new Set(res.accepted);
     await db.withTransactionAsync(async () => {
@@ -110,7 +124,7 @@ async function doSync(db: SQLiteDatabase, token: string): Promise<SyncResult> {
   await db.execAsync("PRAGMA foreign_keys = OFF");
   try {
     for (;;) {
-      const page = await api.pull(token, cursor);
+      const page = await api.pull(token, cursor, device);
       const ordered = [...page.changes].sort((a, b) => SYNC_TABLES.indexOf(a.table) - SYNC_TABLES.indexOf(b.table));
       await db.withTransactionAsync(async () => {
         for (const c of ordered) await applyChange(db, c);

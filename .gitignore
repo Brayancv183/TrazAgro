@@ -17,3 +17,6 @@ docs/identidad visual/*.png
 
 .playwright-mcp/
 apps/backend/.data/
+
+# Playwright screenshots
+apps/mobile/e2e/shots/

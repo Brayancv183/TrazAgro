@@ -3,6 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { normalizePhone, type OtpRequestResponse, type OtpVerifyResponse } from "@trazagro/shared";
 import type { Db } from "./db";
+import { DEFAULT_LIMITS, fixedWindow, type RateLimits } from "./rateLimit";
 
 export interface SmsSender {
   /** False when the code was not really sent (development); the code is then returned to the app. */
@@ -25,10 +26,15 @@ const MAX_ATTEMPTS = 5;
 const PhoneBody = z.object({ phone: z.string().min(7).max(20) });
 const VerifyBody = PhoneBody.extend({ code: z.string().regex(/^\d{6}$/), fullName: z.string().max(80).optional() });
 
-export function authRoutes(app: FastifyInstance, db: Db, sms: SmsSender, secret: string) {
+export function authRoutes(app: FastifyInstance, db: Db, sms: SmsSender, secret: string, limits: RateLimits = DEFAULT_LIMITS) {
+  const requestLimit = fixedWindow(limits.otpRequest.max, limits.otpRequest.windowMs);
+  const verifyLimit = fixedWindow(limits.otpVerify.max, limits.otpVerify.windowMs);
+  const tooMany = (wait: number) => ({ error: `Demasiados intentos desde esta conexión. Intenta en ${Math.ceil(wait / 60)} minutos.` });
   const hash = (phone: string, code: string) => createHmac("sha256", secret).update(`${phone}:${code}`).digest("hex");
 
   app.post("/auth/otp/request", async (req, reply) => {
+    const wait = requestLimit.hit(req.ip);
+    if (wait) return reply.code(429).header("retry-after", String(wait)).send(tooMany(wait));
     const body = PhoneBody.safeParse(req.body);
     const phone = body.success ? normalizePhone(body.data.phone) : undefined;
     if (!phone) return reply.code(400).send({ error: "Número de celular no válido" });
@@ -49,6 +55,8 @@ export function authRoutes(app: FastifyInstance, db: Db, sms: SmsSender, secret:
   });
 
   app.post("/auth/otp/verify", async (req, reply) => {
+    const wait = verifyLimit.hit(req.ip);
+    if (wait) return reply.code(429).header("retry-after", String(wait)).send(tooMany(wait));
     const body = VerifyBody.safeParse(req.body);
     const phone = body.success ? normalizePhone(body.data.phone) : undefined;
     if (!body.success || !phone) return reply.code(400).send({ error: "Datos no válidos" });

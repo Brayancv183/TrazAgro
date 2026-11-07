@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { colors } from "@trazagro/shared";
 import { Icon } from "../Icon";
@@ -23,7 +23,12 @@ export function ShareSheet({ open, onClose, title, onShare, onMoveFarm }: {
   const [mode, setMode] = useState<Mode>("texto");
   const [inc, setInc] = useState<Set<SharePart>>(new Set(["id", "salud", "peso", "repro"]));
   const [done, setDone] = useState<"shared" | "downloaded">();
-  useEffect(() => { if (open) setDone(undefined); }, [open]);
+  // A new opening starts on the form again (reset during render when `open` turns true).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setDone(undefined);
+  }
   const toggle = (k: SharePart) => { const n = new Set(inc); if (n.has(k)) n.delete(k); else n.add(k); setInc(n); };
 
   return (

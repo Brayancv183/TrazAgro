@@ -141,6 +141,7 @@ La primera vez pregunta si crea el proyecto en Expo y la llave de Android: respo
 | `JWT_SECRET` | servidor | Firma de las sesiones | `solo-para-desarrollo` (obligatoria en producción) |
 | `DATABASE_URL` | servidor | Postgres de producción (Neon) | Si falta, usa PGlite |
 | `PGLITE_DIR` | servidor | Carpeta de PGlite en desarrollo | `./.data` |
+| `TRUST_PROXY` | servidor | `1` si corre detrás de un proxy (Railway, Nginx), para que el límite por IP vea la IP real | — |
 | `ANTHROPIC_API_KEY` | servidor | Activa VetConecta (asistente veterinario con Claude) | Si falta, VetConecta responde "todavía no está activo" |
 | `NODE_ENV` | servidor | `production` exige `JWT_SECRET`, `DATABASE_URL` y un proveedor de SMS | — |
 
@@ -160,8 +161,26 @@ pnpm typecheck
 pnpm test
 ```
 
-- `packages/shared` (32 pruebas): días de retiro, categorías, alertas, novedades ICA, costos, reproducción (preñez, parto esperado, secado), agenda, leche y métricas del hato.
-- `apps/backend` (14 pruebas): login por SMS, permisos entre fincas, sincronización sin duplicados, "gana el cambio más reciente", equipo con roles y VetConecta.
+```bash
+pnpm lint
+```
+
+- `packages/shared` (32 pruebas): días de retiro, categorías, alertas, novedades ICA, costos, reproducción, agenda, leche y métricas.
+- `apps/backend` (16 pruebas): login por SMS y límite de intentos por IP, permisos entre fincas, sincronización sin duplicados y sin eco, "gana el cambio más reciente", equipo con roles y VetConecta.
+
+### Pruebas de punta a punta (Playwright)
+
+Con la app web y el servidor corriendo (ver "Arrancar en desarrollo"), la suite abre la app en un navegador real y recorre las 30 pantallas y los flujos principales (animales, eventos, leche, lotes, inventario, ICA, costos, importar CSV, bienvenida, login y equipo). La primera vez instala el navegador:
+
+```bash
+pnpm --filter @trazagro/mobile exec playwright install chromium
+```
+
+```bash
+pnpm --filter @trazagro/mobile e2e
+```
+
+Se puede correr una sola parte: `node e2e/suite.mjs animales` (también `pantallas`, `campo`, `finca`, `cuenta`). Las capturas quedan en `apps/mobile/e2e/shots/`.
 
 Revisar las versiones de Expo:
 
@@ -204,7 +223,7 @@ El diseño sigue los mockups de TrazAgro (encabezado verde con la onda de pasto,
 
 - **Conectar servicios externos:** proveedor de SMS, pagos Wompi/PSE/Nequi (Tienda y Plan hoy envían el pedido por mensaje), clave de Claude para VetConecta, collares GPS LoRa y drones.
 - **App instalada:** el APK de prueba ya se puede compilar (ver arriba); falta la versión de tienda. Con la app instalada entran la lectura con cámara/NFC, fotos por evento, QR imprimible y PDF con logo.
-- **Pendientes técnicos:** modo noche, límite de pedidos de SMS por IP, lint y pruebas de la app móvil, y evitar que la sincronización vuelva a bajar los propios cambios.
+- **Pendientes técnicos:** modo noche (diseñado en los mockups "Noche", sin programar).
 - **Servidor en producción:** desplegar (Railway + Neon).
 
 ---

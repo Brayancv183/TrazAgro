@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { useEffect, useState, type ReactNode, type Ref } from "react";
 import { Animated, ScrollView, StyleSheet, TextInput, View, type StyleProp, type TextInputProps, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Line } from "react-native-svg";
@@ -135,7 +135,7 @@ export function Note({ icon, children, tone = "ok" }: { icon: IconName; children
 export function SegTabs<T extends string>({ tabs, value, onChange, bg = colors.card }: { tabs: { id: T; label: string }[]; value: T; onChange: (id: T) => void; bg?: string }) {
   const [w, setW] = useState(0);
   const idx = Math.max(0, tabs.findIndex((t) => t.id === value));
-  const x = useRef(new Animated.Value(idx)).current;
+  const x = useState(() => new Animated.Value(idx))[0];
   useEffect(() => { Animated.timing(x, { toValue: idx, duration: 380, easing: EASE, useNativeDriver: true }).start(); }, [idx, x]);
   const cell = tabs.length ? (w - 8 - (tabs.length - 1) * 4) / tabs.length : 0;
   return (

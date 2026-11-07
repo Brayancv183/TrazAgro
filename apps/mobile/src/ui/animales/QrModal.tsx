@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Modal, Platform, Pressable, StyleSheet, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { animalLabel, colors, type Animal } from "@trazagro/shared";
@@ -16,7 +16,7 @@ type Size = "etiqueta" | "hoja";
 /** Printable QR of the animal (ModalQR.dc): pops in the middle over a dark scrim. */
 export function QrModal({ open, onClose, animal, farmName, ica }: { open: boolean; onClose: () => void; animal: Animal; farmName?: string; ica?: string }) {
   const [size, setSize] = useState<Size>("etiqueta");
-  const v = useRef(new Animated.Value(0)).current;
+  const v = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
     if (open) { v.setValue(0); Animated.timing(v, { toValue: 1, duration: 320, easing: EASE, useNativeDriver: true }).start(); }
   }, [open, v]);

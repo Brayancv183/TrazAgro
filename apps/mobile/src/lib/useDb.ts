@@ -16,7 +16,8 @@ export function useDbQuery<T>(load: (db: SQLiteDatabase) => Promise<T>, deps: un
       let alive = true;
       load(db).then((d) => alive && setData(d)).catch((e) => alive && setError(e));
       return () => { alive = false; };
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+      // The caller passes the deps of `load`, so the list is built here on purpose.
+      // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/use-memo
     }, [db, version, ...deps]),
   );
   const reload = useCallback(() => setVersion((v) => v + 1), []);

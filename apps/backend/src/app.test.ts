@@ -191,3 +191,40 @@ describe("VetConecta", () => {
     expect(process.env.ANTHROPIC_API_KEY ? [200, 502] : [503]).toContain(res.statusCode);
   });
 });
+
+describe("límite de intentos por IP", () => {
+  it("blocks a flood of code requests from one connection", async () => {
+    const limited = await buildApp({ db, sms, jwtSecret: "test-secret", limits: { otpRequest: { max: 3, windowMs: 60_000 }, otpVerify: { max: 2, windowMs: 60_000 } } });
+    const ask = (phone: string) => limited.inject({ method: "POST", url: "/auth/otp/request", payload: { phone } });
+    for (const p of ["3001000001", "3001000002", "3001000003"]) expect((await ask(p)).statusCode).toBe(200);
+    const blocked = await ask("3001000004");
+    expect(blocked.statusCode).toBe(429);
+    expect(blocked.headers["retry-after"]).toBeDefined();
+    const check = () => limited.inject({ method: "POST", url: "/auth/otp/verify", payload: { phone: "3001000001", code: "000000" } });
+    expect((await check()).statusCode).toBe(401);
+    expect((await check()).statusCode).toBe(401);
+    expect((await check()).statusCode).toBe(429);
+    await limited.close();
+  });
+});
+
+describe("sin eco de los propios cambios", () => {
+  it("doesn't send a phone back what it pushed, but other phones get it", async () => {
+    const token = await login("3001112233");
+    const headers = (device: string) => ({ authorization: `Bearer ${token}`, "x-device-id": device });
+    const pushed = await app.inject({ method: "POST", url: "/sync/push", headers: headers("phone-aaaa-1111"), payload: { changes: [farm("f1"), animal("a1", "f1", "Lola", "2026-10-30T10:00:00Z")] } });
+    expect((pushed.json() as PushResponse).accepted).toEqual(["f1", "a1"]);
+
+    const own = (await app.inject({ method: "GET", url: "/sync/pull?since=0", headers: headers("phone-aaaa-1111") })).json() as PullResponse;
+    expect(own.changes).toEqual([]);
+    expect(own.cursor).toBeGreaterThan(0); // the cursor still moves past them
+
+    const other = (await app.inject({ method: "GET", url: "/sync/pull?since=0", headers: headers("phone-bbbb-2222") })).json() as PullResponse;
+    expect(other.changes.map((c) => c.id)).toEqual(["f1", "a1"]);
+
+    // An edit from the other phone does come back to the first one.
+    await app.inject({ method: "POST", url: "/sync/push", headers: headers("phone-bbbb-2222"), payload: { changes: [animal("a1", "f1", "Lola María", "2026-10-31T10:00:00Z")] } });
+    const back = (await app.inject({ method: "GET", url: `/sync/pull?since=${own.cursor}`, headers: headers("phone-aaaa-1111") })).json() as PullResponse;
+    expect(back.changes.map((c) => c.payload.name)).toEqual(["Lola María"]);
+  });
+});

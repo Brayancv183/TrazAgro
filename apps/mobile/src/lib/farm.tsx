@@ -40,6 +40,8 @@ export function FarmProvider({ children }: { children: ReactNode }) {
     setRoles(map);
   }, [db]);
 
+  // Loading data from SQLite on mount; refresh() sets state only after the async reads finish.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { refresh(); }, [refresh]);
 
   const selectFarm = useCallback(async (id: string) => {

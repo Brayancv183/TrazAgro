@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Animated, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -66,7 +66,7 @@ export function Segmented<T extends string>({ options, value, onChange, dark, st
 }) {
   const [w, setW] = useState(0);
   const idx = Math.max(0, options.findIndex((o) => o.id === value));
-  const x = useRef(new Animated.Value(idx)).current;
+  const x = useState(() => new Animated.Value(idx))[0];
   useEffect(() => {
     Animated.timing(x, { toValue: idx, duration: 380, easing: EASE, useNativeDriver: true }).start();
   }, [idx, x]);

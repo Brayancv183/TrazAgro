@@ -76,4 +76,6 @@ export async function migrate(db: Db) {
     PRIMARY KEY (table_name, id)
   )`);
   await db.query("CREATE INDEX IF NOT EXISTS records_farm_seq ON records (farm_id, seq)");
+  // Device that sent the current version, so its own pull can skip it (it already has it).
+  await db.query("ALTER TABLE records ADD COLUMN IF NOT EXISTS origin text");
 }

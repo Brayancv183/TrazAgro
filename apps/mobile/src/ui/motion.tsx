@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { AccessibilityInfo, Animated, Easing, Pressable, type GestureResponderEvent, type PressableProps, type StyleProp, type ViewStyle } from "react-native";
 
 /** The mockups' curve: cubic-bezier(.2,.8,.2,1) — fast start, soft landing, like iOS. */
@@ -13,7 +13,7 @@ AccessibilityInfo.isReduceMotionEnabled?.().then((v) => { reduceMotion = v; }).c
  * screen's sections arrive one after another.
  */
 export function Rise({ children, index = 0, style, distance = 14 }: { children: ReactNode; index?: number; style?: StyleProp<ViewStyle>; distance?: number }) {
-  const v = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const v = useState(() => new Animated.Value(reduceMotion ? 1 : 0))[0];
   useEffect(() => {
     if (reduceMotion) return;
     Animated.timing(v, { toValue: 1, duration: 350, delay: Math.min(index, 10) * 40, easing: EASE, useNativeDriver: native }).start();
@@ -27,7 +27,7 @@ export function Rise({ children, index = 0, style, distance = 14 }: { children: 
 
 /** "taPop": scales from 0.94 and fades in — used for chips and the active tab pill. */
 export function Pop({ children, style, deps = [] }: { children: ReactNode; style?: StyleProp<ViewStyle>; deps?: unknown[] }) {
-  const v = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+  const v = useState(() => new Animated.Value(reduceMotion ? 1 : 0))[0];
   useEffect(() => {
     if (reduceMotion) return;
     v.setValue(0);
@@ -51,7 +51,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 export function Tap({ children, style, onPressIn, onPressOut, scaleTo = 0.97, ...props }: Omit<PressableProps, "style" | "children"> & {
   children: ReactNode; style?: StyleProp<ViewStyle>; scaleTo?: number;
 }) {
-  const v = useRef(new Animated.Value(1)).current;
+  const v = useState(() => new Animated.Value(1))[0];
   const to = (toValue: number) => Animated.spring(v, { toValue, useNativeDriver: native, speed: 40, bounciness: toValue === 1 ? 6 : 0 }).start();
   return (
     <AnimatedPressable {...props}
